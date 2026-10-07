@@ -1,0 +1,106 @@
+{
+  "source": {
+    "figmaFile": "XyvXAvzsiYBcNrLaeaslrO",
+    "figmaPage": "Templates (85:874)",
+    "extractedFrom": "Figma Plugin API relativeTransform (exact, not bounding boxes)"
+  },
+  "conventions": {
+    "units": "px, in canvas coordinates (0,0 = top-left of the 1600x900 board)",
+    "position": "cx/cy are the CENTER of each card. Render with left = cx - width/2, top = cy - height/2.",
+    "rotate": "degrees, CSS convention (positive = clockwise), pivoting around the card center. Already sign-flipped from Figma, which counts counter-clockwise.",
+    "z": "stacking order, 0 = back. Higher z renders on top.",
+    "margins": "The 48px margin is the only hard layout rule. Cards must stay inside it on every side unless the layout lists that side in allowBleed.",
+    "overflow": "Sides listed in allowBleed run past the canvas edge on purpose. The canvas must clip (overflow: hidden)."
+  },
+  "canvas": {
+    "width": 1600,
+    "height": 900,
+    "background": "#FFFFFF",
+    "clipContent": true,
+    "margin": 48,
+    "guideGrid": {
+      "enforced": false,
+      "note": "Visual guide only. Cards do not snap to it.",
+      "columns": 5,
+      "rows": 5,
+      "gutter": 20,
+      "columnWidth": 284.8,
+      "rowHeight": 144.8
+    }
+  },
+  "card": {
+    "width": 450,
+    "height": 650,
+    "cornerRadius": 48,
+    "placeholder": {
+      "fill": "#FFF7F7",
+      "stroke": "#000000",
+      "strokeWidth": 4,
+      "iconSize": 96,
+      "iconAlign": "center"
+    }
+  },
+  "emptyState": {
+    "id": "empty",
+    "name": "Empty State",
+    "figmaNodeId": "85:875",
+    "role": "Default layout shown before a template is chosen. Not selectable in the template picker.",
+    "allowBleed": [],
+    "cards": [
+      { "z": 0, "cx": 273, "cy": 450, "rotate": 0 },
+      { "z": 1, "cx": 800, "cy": 450, "rotate": 0 },
+      { "z": 2, "cx": 1327, "cy": 450, "rotate": 0 }
+    ]
+  },
+  "templates": [
+    {
+      "id": "arc",
+      "name": "Arc",
+      "figmaNodeId": "85:882",
+      "allowBleed": ["bottom"],
+      "cards": [
+        { "z": 0, "cx": 1087.65, "cy": 763.68, "rotate": 12 },
+        { "z": 1, "cx": 512.65, "cy": 763.68, "rotate": -12 },
+        { "z": 2, "cx": 800, "cy": 593, "rotate": 0 }
+      ]
+    },
+    {
+      "id": "stack",
+      "name": "Stack",
+      "figmaNodeId": "85:889",
+      "allowBleed": [],
+      "cards": [
+        { "z": 0, "cx": 850, "cy": 500, "rotate": 0 },
+        { "z": 1, "cx": 800, "cy": 450, "rotate": 0 },
+        { "z": 2, "cx": 750, "cy": 400, "rotate": 0 }
+      ]
+    },
+    {
+      "id": "spread",
+      "name": "Spread",
+      "figmaNodeId": "85:896",
+      "allowBleed": ["bottom"],
+      "cards": [
+        { "z": 0, "cx": 458.36, "cy": 657.98, "rotate": -30 },
+        { "z": 1, "cx": 646.31, "cy": 591.62, "rotate": -18 },
+        { "z": 2, "cx": 855.39, "cy": 575.42, "rotate": -8 },
+        { "z": 3, "cx": 996.18, "cy": 616.34, "rotate": 2 },
+        { "z": 4, "cx": 1192.44, "cy": 713.78, "rotate": 16 }
+      ]
+    },
+    {
+      "id": "grid",
+      "name": "Grid",
+      "figmaNodeId": "85:907",
+      "allowBleed": ["top", "bottom"],
+      "cards": [
+        { "z": 0, "cx": 318, "cy": 33, "rotate": 0 },
+        { "z": 1, "cx": 318, "cy": 715, "rotate": 0 },
+        { "z": 2, "cx": 800, "cy": 828, "rotate": 0 },
+        { "z": 3, "cx": 800, "cy": 146, "rotate": 0 },
+        { "z": 4, "cx": 1282, "cy": 763, "rotate": 0 },
+        { "z": 5, "cx": 1282, "cy": 81, "rotate": 0 }
+      ]
+    }
+  ]
+}

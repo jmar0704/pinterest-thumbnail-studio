@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-text-default);
+  background: var(--color-background-default);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: var(--space-0);
+  min-width: 320px;
+}
+
+.range-track {
+  position: relative;
+  width: 100%;
+  height: var(--space-200);
+  border-radius: var(--rounding-pill);
+  background: var(--color-background-secondary);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.range-track:focus-visible {
+  outline: var(--border-width-lg) solid var(--color-border-focus);
+  outline-offset: var(--space-100);
+}
+
+.image-chip {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artboard {
+  display: block;
+  max-width: min(100%, 960px);
+  max-height: 58vh;
+  width: auto;
+  height: auto;
+  background: var(--color-background-default);
+  box-shadow: var(--elevation-raised);
+  cursor: pointer;
+}
+
+.artboard-blog {
+  width: min(65vw, 960px);
+  aspect-ratio: 16 / 9;
+}
+
+@media (max-width: 900px) {
+  .artboard {
+    max-width: 100%;
+  }
+
+  aside {
+    min-width: 280px !important;
+    width: 280px !important;
+  }
+}
