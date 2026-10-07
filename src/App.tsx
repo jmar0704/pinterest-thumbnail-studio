@@ -793,7 +793,7 @@ function App() {
                     text="Shuffle"
                   />
                   <Button
-                    color="selected"
+                    color="dark"
                     onClick={() => {
                       setSelectedFrame((current) => (current + 1) % frameCount)
                     }}
