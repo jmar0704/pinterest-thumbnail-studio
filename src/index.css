@@ -1,7 +1,32 @@
 @import "tailwindcss";
 
-:root {
-  font-family: Arial, Helvetica, sans-serif;
+/* Metropolis: only the weights the UI uses (Text regular 400, bold 600). */
+@font-face {
+  font-family: "Metropolis";
+  src: url("/fonts/Metropolis-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Metropolis";
+  src: url("/fonts/Metropolis-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * Gestalt's classic Text, Heading and Button read --font-family-default-latin.
+ * DesignTokensProvider sets it on :root at runtime, so this selector is more
+ * specific to win.
+ */
+html:root {
+  --font-family-default-latin: "Metropolis", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Ubuntu, Cantarell, "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  font-family: var(--font-family-default-latin);
   color: var(--color-text-default);
   background: var(--color-background-default);
 }
@@ -12,22 +37,6 @@
 
 body {
   margin: var(--space-0);
-  min-width: 320px;
-}
-
-.range-track {
-  position: relative;
-  width: 100%;
-  height: var(--space-200);
-  border-radius: var(--rounding-pill);
-  background: var(--color-background-secondary);
-  cursor: pointer;
-  touch-action: none;
-}
-
-.range-track:focus-visible {
-  outline: var(--border-width-lg) solid var(--color-border-focus);
-  outline-offset: var(--space-100);
 }
 
 .image-chip {
@@ -37,29 +46,83 @@ body {
   object-fit: cover;
 }
 
+/* Template picker thumbnails: card silhouettes drawn from templates.json. */
+.template-thumbnail {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.template-card {
+  fill: var(--color-background-secondary-base);
+  stroke: var(--color-border-default);
+  stroke-width: 16;
+}
+
+.template-card-selected {
+  fill: var(--color-background-selected-weak);
+  stroke: var(--color-background-selected-base);
+}
+
+/* Three columns on desktop; below 1100px the stage stacks above both panels. */
+.workspace {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--left-panel-width) minmax(0, 1fr) var(--right-panel-width);
+  grid-template-areas: "left stage right";
+}
+
+.workspace-left {
+  grid-area: left;
+  min-height: 0;
+}
+
+.workspace-stage {
+  grid-area: stage;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-right {
+  grid-area: right;
+  min-height: 0;
+}
+
+@media (max-width: 1100px) {
+  .workspace {
+    overflow-y: auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: 70vh auto;
+    grid-template-areas:
+      "stage stage"
+      "left right";
+  }
+}
+
+/* The artboard scales to fit whichever of width or height runs out first. */
+.artboard-frame {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+
 .artboard {
   display: block;
-  max-width: min(100%, 960px);
-  max-height: 58vh;
-  width: auto;
-  height: auto;
-  background: var(--color-background-default);
-  box-shadow: var(--elevation-raised);
-  cursor: pointer;
-}
-
-.artboard-blog {
-  width: min(65vw, 960px);
+  width: min(100cqw, 100cqh * 16 / 9);
   aspect-ratio: 16 / 9;
+  border-radius: var(--rounding-400);
+  background: var(--color-background-default);
+  box-shadow: var(--elevation-raised-top);
+  touch-action: none;
 }
 
-@media (max-width: 900px) {
-  .artboard {
-    max-width: 100%;
-  }
+.artboard-draggable {
+  cursor: grab;
+}
 
-  aside {
-    min-width: 280px !important;
-    width: 280px !important;
-  }
+.artboard-draggable:active {
+  cursor: grabbing;
 }

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
+  BannerSlim,
   Box,
   Button,
   DesignTokensProvider,
@@ -8,507 +9,382 @@ import {
   Heading,
   Icon,
   IconButton,
+  SegmentedControl,
   TapArea,
   Text,
+  Tooltip,
 } from "gestalt"
 import "gestalt/dist/gestalt.css"
+import FrameChips from "@/components/FrameChips"
+import StylePanel from "@/components/StylePanel"
+import SwatchPicker from "@/components/SwatchPicker"
+import TemplatePicker from "@/components/TemplatePicker"
+import useHistory from "@/hooks/useHistory"
+import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
+import {
+  defaultCardStyle,
+  defaultScatter,
+  scatterSteps,
+  type CardStyle,
+} from "@/data/styleOptions"
+import {
+  clampOffset,
+  computePlacements,
+  hitTest,
+  marginViolations,
+  type Offset,
+} from "@/lib/composition"
+import { drawComposition } from "@/lib/drawComposition"
+import { backgroundOptions } from "@/theme/artworkPalette"
+import { iconSizes, sizes } from "@/theme/sizes"
 
-type Structure = "grid" | "arc" | "stack" | "spread"
-type FramePosition = {
-  x: number
-  y: number
-}
-type FrameStyle = {
-  scale: number
-  rotation: number
-  offset: number
-  tilt: number
-  depth: number
-  stroke: number
-  shadow: number
-  shadowColor: string
+type Doc = {
+  templateId: string | null
+  styles: CardStyle[]
+  offsets: Offset[]
+  background: string
+  seed: number
+  scatter: number
+  images: string[]
+  /** Permutation of image indexes; slot i shows images[imageOrder[i % n]]. */
+  imageOrder: number[]
 }
 
-type FrameHit = {
-  index: number
-  x: number
-  y: number
-  width: number
-  height: number
-  rotation: number
+const zeroOffsets = (): Offset[] =>
+  Array.from({ length: maxCards }, () => ({ x: 0, y: 0 }))
+const defaultStyles = (): CardStyle[] =>
+  Array.from({ length: maxCards }, () => ({ ...defaultCardStyle }))
+
+const initialDoc: Doc = {
+  templateId: null,
+  styles: defaultStyles(),
+  offsets: zeroOffsets(),
+  background: backgroundOptions[0].value,
+  seed: 48213,
+  scatter: defaultScatter,
+  images: [],
+  imageOrder: [],
 }
 
-type TemplateCard = {
-  x: number
-  y: number
-  rotation: number
-}
-
-const blogHeader = { label: "Blog header · 1600 × 900 · 16:9", width: 1600, height: 900 }
-const templateCard = { width: 450, height: 650, radius: 48 }
-
-const backgrounds = ["#fbfbf9", "#e5e5e0", "#ffffff", "#c7d9c4", "#211922"]
-const shadowColors = ["#211922", "#6e5d51", "#a13c4c", "#486a55", "#526b8a"]
-const initialFrameStyle: FrameStyle = {
-  scale: 50,
-  rotation: 0,
-  offset: 0,
-  tilt: 0,
-  depth: 0,
-  stroke: 0,
-  shadow: 0,
-  shadowColor: shadowColors[0],
-}
-const structureOptions: {
-  value: Structure
-  label: string
-}[] = [
-  { value: "grid", label: "Grid" },
-  { value: "arc", label: "Arc" },
-  { value: "stack", label: "Stack" },
-  { value: "spread", label: "Spread" },
-]
-const emptyLayout: TemplateCard[] = [
-  { x: 273, y: 450, rotation: 0 },
-  { x: 800, y: 450, rotation: 0 },
-  { x: 1327, y: 450, rotation: 0 },
-]
-const templateLayouts: Record<Structure, TemplateCard[]> = {
-  arc: [
-    { x: 1087.65, y: 763.68, rotation: 12 },
-    { x: 512.65, y: 763.68, rotation: -12 },
-    { x: 800, y: 593, rotation: 0 },
-  ],
-  stack: [
-    { x: 850, y: 500, rotation: 0 },
-    { x: 800, y: 450, rotation: 0 },
-    { x: 750, y: 400, rotation: 0 },
-  ],
-  spread: [
-    { x: 458.36, y: 657.98, rotation: -30 },
-    { x: 646.31, y: 591.62, rotation: -18 },
-    { x: 855.39, y: 575.42, rotation: -8 },
-    { x: 996.18, y: 616.34, rotation: 2 },
-    { x: 1192.44, y: 713.78, rotation: 16 },
-  ],
-  grid: [
-    { x: 318, y: 33, rotation: 0 },
-    { x: 318, y: 715, rotation: 0 },
-    { x: 800, y: 828, rotation: 0 },
-    { x: 800, y: 146, rotation: 0 },
-    { x: 1282, y: 763, rotation: 0 },
-    { x: 1282, y: 81, rotation: 0 },
-  ],
-}
+const maxFileBytes = 10 * 1024 * 1024
 const placeholderImageSrc = "/assets/580dc.svg"
+const isMac =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
 
-function mulberry32(seed: number) {
-  return () => {
-    let value = (seed += 0x6d2b79f5)
-    value = Math.imul(value ^ (value >>> 15), value | 1)
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61)
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296
-  }
+function readToken(name: string) {
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim()
 }
 
-function roundedRect(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-) {
-  context.beginPath()
-  context.roundRect(x, y, width, height, radius)
-  context.closePath()
+function shuffled(length: number, avoid: number[]) {
+  const order = Array.from({ length }, (_, index) => index)
+  if (length < 2) return order
+  do {
+    for (let i = length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[order[i], order[j]] = [order[j], order[i]]
+    }
+  } while (order.every((value, index) => value === avoid[index]))
+  return order
 }
 
-function SliderControl({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: number
-  onChange: (value: number) => void
-}) {
-  const updateValue = (event: React.PointerEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect()
-    onChange(
-      Math.round(
-        Math.max(
-          0,
-          Math.min(100, ((event.clientX - bounds.left) / bounds.width) * 100),
-        ),
-      ),
-    )
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
+function listFrames(slots: number[]) {
+  const names = slots.map((slot) => slot + 1)
+  if (names.length === 1) return `Frame ${names[0]} crosses`
+  return `Frames ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} cross`
+}
 
-  return (
-    <Flex direction="column" gap={1}>
-      <Flex justifyContent="between" alignItems="center">
-        <Text size="200" weight="bold">
-          {label}
-        </Text>
-        <Text size="200" color="subtle">
-          {value}
-        </Text>
-      </Flex>
-      <div
-        aria-label={label}
-        aria-valuemax={100}
-        aria-valuemin={0}
-        aria-valuenow={value}
-        className="range-track"
-        onKeyDown={(event) => {
-          if (event.key === "ArrowRight" || event.key === "ArrowUp")
-            onChange(Math.min(100, value + 5))
-          if (event.key === "ArrowLeft" || event.key === "ArrowDown")
-            onChange(Math.max(0, value - 5))
-        }}
-        onPointerDown={updateValue}
-        onPointerMove={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId))
-            updateValue(event)
-        }}
-        role="slider"
-        tabIndex={0}
-      >
-        <Box
-          color="dark"
-          dangerouslySetInlineStyle={{ __style: { width: `${value}%` } }}
-          height="100%"
-          rounding="pill"
-        />
-        <Box
-          color="dark"
-          dangerouslySetInlineStyle={{
-            __style: {
-              left: `calc(${value}% - var(--space-200))`,
-              top: "50%",
-              transform: "translateY(-50%)",
-            },
-          }}
-          height={16}
-          position="absolute"
-          rounding="circle"
-          width={16}
-        />
-      </div>
-    </Flex>
-  )
+// Object URLs stay alive while any undo step can still show them.
+function revokeUnused(dropped: Doc[], retained: Doc[]) {
+  const live = new Set(retained.flatMap((doc) => doc.images))
+  for (const url of new Set(dropped.flatMap((doc) => doc.images))) {
+    if (!live.has(url)) URL.revokeObjectURL(url)
+  }
 }
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const frameHitsRef = useRef<FrameHit[]>([])
-  const isExportingRef = useRef(false)
-  const [structure, setStructure] = useState<Structure | null>(null)
-  const frameCount = 3
-  const [selectedFrame, setSelectedFrame] = useState(0)
-  const [seed, setSeed] = useState(48213)
-  const [background, setBackground] = useState(backgrounds[0])
-  const [images, setImages] = useState<string[]>([])
-  const [frameStyles, setFrameStyles] = useState<FrameStyle[]>(() =>
-    Array.from({ length: 3 }, () => ({ ...initialFrameStyle })),
-  )
-  const [framePositions, setFramePositions] = useState<FramePosition[]>(() =>
-    Array.from({ length: 3 }, () => ({ x: 0, y: 0 })),
-  )
-  const draggingFrameRef = useRef<{
-    index: number
-    startPointerX: number
-    startPointerY: number
-    originX: number
-    originY: number
-    hasMoved: boolean
-  } | null>(null)
+  const {
+    state: doc,
+    commit,
+    preview,
+    settle,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useHistory<Doc>(initialDoc, revokeUnused)
+  const [selectedSlot, setSelectedSlot] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const [status, setStatus] = useState("")
+  const [imagesLoaded, setImagesLoaded] = useState(0)
 
-  const [status, setStatus] = useState("All changes saved")
-  const selectedStyle = frameStyles[selectedFrame]
+  const template = findTemplate(doc.templateId)
+  const isEmptyState = doc.templateId === null
+  const cardCount = template.cards.length
+  const slot = Math.min(selectedSlot, cardCount - 1)
 
-  const imageObjects = useMemo(
+  const announce = useCallback((message: string) => setStatus(message), [])
+  useEffect(() => {
+    if (!status) return
+    const timer = window.setTimeout(() => setStatus(""), 4000)
+    return () => window.clearTimeout(timer)
+  }, [status])
+
+  const placements = useMemo(
     () =>
-      images.map((src) => {
-        const image = new Image()
-        image.src = src
-        return image
+      computePlacements({
+        template,
+        isEmptyState,
+        styles: doc.styles,
+        offsets: doc.offsets,
+        scatter: doc.scatter,
+        seed: doc.seed,
       }),
-    [images],
+    [template, isEmptyState, doc.styles, doc.offsets, doc.scatter, doc.seed],
   )
+
+  const violatingSlots = useMemo(() => {
+    if (isEmptyState) return new Set<number>()
+    return new Set(
+      placements
+        .filter(
+          (placement) =>
+            marginViolations(placement, template.allowBleed).length,
+        )
+        .map((placement) => placement.slot),
+    )
+  }, [placements, template, isEmptyState])
+
+  const imageSrcForSlot = useCallback(
+    (cardSlot: number) => {
+      const count = doc.images.length
+      if (!count) return undefined
+      return doc.images[doc.imageOrder[cardSlot % count] ?? cardSlot % count]
+    },
+    [doc.images, doc.imageOrder],
+  )
+
+  const imageElements = useMemo(() => {
+    const map = new Map<string, HTMLImageElement>()
+    for (const src of doc.images) {
+      const image = new Image()
+      image.src = src
+      map.set(src, image)
+    }
+    return map
+  }, [doc.images])
+
   const placeholderImage = useMemo(() => {
     const image = new Image()
     image.src = placeholderImageSrc
     return image
   }, [])
 
-  const drawCanvas = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const context = canvas.getContext("2d")
-    if (!context) return
-
-    const { width, height } = blogHeader
-    canvas.width = width
-    canvas.height = height
-    context.fillStyle = background
-    context.fillRect(0, 0, width, height)
-    frameHitsRef.current = []
-
-    const random = mulberry32(seed)
-    const frameWidth = templateCard.width
-    const frameHeight = templateCard.height
-    const layout = structure ? templateLayouts[structure] : emptyLayout
-
-    layout.forEach((templatePosition, cardIndex) => {
-      const index = cardIndex % frameCount
-      const image = imageObjects[index]
-      const frameStyle = frameStyles[index]
-      const customPos = framePositions[index] ?? { x: 0, y: 0 }
-      const isEmptyLayout = structure === null
-      let x = templatePosition.x
-      let y = templatePosition.y
-      const jitter = isEmptyLayout
-        ? 0
-        : (frameStyle.offset / 100) * frameWidth * 0.4
-      x += (random() - 0.5) * jitter * 2 + customPos.x
-      y += (random() - 0.5) * jitter * 2 + customPos.y
-      const sizeMultiplier = isEmptyLayout
-        ? 1
-        : 0.4 + (frameStyle.scale / 100) * 1.2
-      const depthMultiplier = isEmptyLayout
-        ? 1
-        : 0.9 + (random() - 0.5) * (frameStyle.depth / 100) * 0.38
-      const scale = sizeMultiplier * depthMultiplier
-      const rotation =
-        templatePosition.rotation +
-        (isEmptyLayout
-          ? 0
-          : (random() - 0.5) * (frameStyle.rotation / 100) * 24)
-      const tiltX = isEmptyLayout
-        ? 0
-        : (random() - 0.5) * (frameStyle.tilt / 100) * 0.7
-      const tiltY = isEmptyLayout
-        ? 0
-        : (random() - 0.5) * (frameStyle.tilt / 100) * 0.7
-      const drawWidth = frameWidth * scale
-      const drawHeight = frameHeight * scale
-      const cornerRadius = templateCard.radius * scale
-      frameHitsRef.current.push({
-        index,
-        x,
-        y,
-        width: drawWidth,
-        height: drawHeight,
-        rotation: (rotation * Math.PI) / 180,
-      })
-
-      context.save()
-      context.translate(x, y)
-      context.rotate((rotation * Math.PI) / 180)
-      context.transform(
-        1,
-        tiltY,
-        tiltX,
-        1 - Math.min(0.18, Math.abs(tiltY) * 0.3),
-        0,
-        0,
-      )
-      roundedRect(
-        context,
-        -drawWidth / 2,
-        -drawHeight / 2,
-        drawWidth,
-        drawHeight,
-        cornerRadius,
-      )
-      context.fillStyle = image?.complete && image.naturalWidth ? "#f1f0eb" : "#fff7f7"
-      context.shadowColor = frameStyle.shadowColor
-      context.shadowBlur = frameStyle.shadow * 0.45
-      context.shadowOffsetX = 0
-      context.shadowOffsetY = frameStyle.shadow * 0.18
-      context.fill()
-      context.shadowColor = "transparent"
-      context.shadowBlur = 0
-      context.shadowOffsetY = 0
-      context.save()
-      roundedRect(
-        context,
-        -drawWidth / 2,
-        -drawHeight / 2,
-        drawWidth,
-        drawHeight,
-        cornerRadius,
-      )
-      context.clip()
-
-      if (image?.complete && image.naturalWidth) {
-        const imageRatio = image.naturalWidth / image.naturalHeight
-        const frameRatio = drawWidth / drawHeight
-        let sourceWidth = image.naturalWidth
-        let sourceHeight = image.naturalHeight
-        let sourceX = 0
-        let sourceY = 0
-        if (imageRatio > frameRatio) {
-          sourceWidth = image.naturalHeight * frameRatio
-          sourceX = (image.naturalWidth - sourceWidth) / 2
-        } else {
-          sourceHeight = image.naturalWidth / frameRatio
-          sourceY = (image.naturalHeight - sourceHeight) / 2
-        }
-        context.drawImage(
-          image,
-          sourceX,
-          sourceY,
-          sourceWidth,
-          sourceHeight,
-          -drawWidth / 2,
-          -drawHeight / 2,
-          drawWidth,
-          drawHeight,
-        )
-      } else {
-        if (placeholderImage.complete && placeholderImage.naturalWidth) {
-          context.drawImage(
-            placeholderImage,
-            -drawWidth / 2,
-            -drawHeight / 2,
-            drawWidth,
-            drawHeight,
-          )
-        }
-      }
-      context.restore()
-
-      if (frameStyle.stroke > 0) {
-        context.strokeStyle = background === "#211922" ? "#ffffff" : "#211922"
-        context.lineWidth = frameStyle.stroke * 0.22
-        roundedRect(
-          context,
-          -drawWidth / 2,
-          -drawHeight / 2,
-          drawWidth,
-          drawHeight,
-          cornerRadius,
-        )
-        context.stroke()
-      }
-      context.restore()
-    })
-
-  }
+  // Redraw once each image finishes decoding.
+  useEffect(() => {
+    const elements = [placeholderImage, ...imageElements.values()]
+    const onLoad = () => setImagesLoaded((count) => count + 1)
+    elements.forEach((image) => image.addEventListener("load", onLoad))
+    return () =>
+      elements.forEach((image) => image.removeEventListener("load", onLoad))
+  }, [imageElements, placeholderImage])
 
   useEffect(() => {
-    imageObjects.forEach((image) => image.addEventListener("load", drawCanvas))
-    placeholderImage.addEventListener("load", drawCanvas)
-    drawCanvas()
-    return () => {
-      imageObjects.forEach((image) =>
-        image.removeEventListener("load", drawCanvas),
-      )
-      placeholderImage.removeEventListener("load", drawCanvas)
-    }
-  })
-
-  const markChanged = () => {
-    setStatus("Saving…")
-    window.setTimeout(() => setStatus("All changes saved"), 500)
-  }
-
-  const updateFrameStyle = (
-    key: Exclude<keyof FrameStyle, "shadowColor">,
-    value: number,
-  ) => {
-    setFrameStyles((current) =>
-      current.map((style, index) =>
-        index === selectedFrame ? { ...style, [key]: value } : style,
-      ),
-    )
-    markChanged()
-  }
-
-  const handleCanvasPointerDown = (
-    event: React.PointerEvent<HTMLCanvasElement>,
-  ) => {
-    const canvas = event.currentTarget
-    const bounds = canvas.getBoundingClientRect()
-    const canvasX = ((event.clientX - bounds.left) / bounds.width) * canvas.width
-    const canvasY =
-      ((event.clientY - bounds.top) / bounds.height) * canvas.height
-
-    const hit = [...frameHitsRef.current].reverse().find((frame) => {
-      const deltaX = canvasX - frame.x
-      const deltaY = canvasY - frame.y
-      const localX =
-        deltaX * Math.cos(-frame.rotation) -
-        deltaY * Math.sin(-frame.rotation)
-      const localY =
-        deltaX * Math.sin(-frame.rotation) +
-        deltaY * Math.cos(-frame.rotation)
-      return (
-        Math.abs(localX) <= frame.width / 2 &&
-        Math.abs(localY) <= frame.height / 2
-      )
+    const element = canvasRef.current
+    const context = element?.getContext("2d")
+    if (!element || !context) return
+    element.width = canvas.width
+    element.height = canvas.height
+    drawComposition(context, {
+      background: doc.background,
+      placements,
+      imageForSlot: (cardSlot) => {
+        const src = imageSrcForSlot(cardSlot)
+        return src ? imageElements.get(src) : undefined
+      },
+      placeholder: placeholderImage,
+      overlay: {
+        selectedSlot: isEmptyState ? null : slot,
+        violatingSlots,
+        showMarginGuide: isDragging,
+        colors: {
+          selection: readToken("--color-border-focus"),
+          warning: readToken("--color-icon-warning"),
+          guide: readToken("--color-border-default"),
+        },
+      },
     })
+  }, [
+    doc.background,
+    placements,
+    imageSrcForSlot,
+    imageElements,
+    placeholderImage,
+    isEmptyState,
+    slot,
+    violatingSlots,
+    isDragging,
+    imagesLoaded,
+  ])
 
-    if (hit) {
-      setSelectedFrame(hit.index)
-      setStatus(`Editing frame ${hit.index + 1}`)
-      const currentPos = framePositions[hit.index] ?? { x: 0, y: 0 }
-      draggingFrameRef.current = {
-        index: hit.index,
-        startPointerX: event.clientX,
-        startPointerY: event.clientY,
-        originX: currentPos.x,
-        originY: currentPos.y,
-        hasMoved: false,
-      }
-      canvas.setPointerCapture(event.pointerId)
+  // Undo / redo shortcuts.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const modifier = isMac ? event.metaKey : event.ctrlKey
+      if (!modifier || event.key.toLowerCase() !== "z") return
+      event.preventDefault()
+      if (event.shiftKey) redo()
+      else undo()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [undo, redo])
+
+  // ---- Canvas dragging -----------------------------------------------------
+
+  const dragRef = useRef<{
+    slot: number
+    pointerX: number
+    pointerY: number
+    origin: Offset
+    start: Doc
+    moved: boolean
+  } | null>(null)
+
+  const toCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect()
+    return {
+      x: ((event.clientX - bounds.left) / bounds.width) * canvas.width,
+      y: ((event.clientY - bounds.top) / bounds.height) * canvas.height,
+      scale: canvas.width / bounds.width,
     }
   }
 
-  const handleCanvasPointerMove = (
-    event: React.PointerEvent<HTMLCanvasElement>,
-  ) => {
-    const drag = draggingFrameRef.current
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const point = toCanvasPoint(event)
+    const hit = hitTest(placements, point.x, point.y)
+    if (!hit) return
+    setSelectedSlot(hit.slot)
+    // The Empty State is a fixed preview; cards move only within a template.
+    if (isEmptyState) return
+    dragRef.current = {
+      slot: hit.slot,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      origin: doc.offsets[hit.slot],
+      start: doc,
+      moved: false,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current
     if (!drag) return
-
-    const canvas = event.currentTarget
-    const bounds = canvas.getBoundingClientRect()
-    const scaleFactor = canvas.width / bounds.width
-
-    const deltaX = (event.clientX - drag.startPointerX) * scaleFactor
-    const deltaY = (event.clientY - drag.startPointerY) * scaleFactor
-
-    if (Math.hypot(deltaX, deltaY) > 3) {
-      drag.hasMoved = true
+    const { scale } = toCanvasPoint(event)
+    const dx = (event.clientX - drag.pointerX) * scale
+    const dy = (event.clientY - drag.pointerY) * scale
+    if (!drag.moved && Math.hypot(dx, dy) < 3) return
+    if (!drag.moved) {
+      drag.moved = true
+      setIsDragging(true)
     }
-
-    setFramePositions((current) =>
-      current.map((pos, idx) =>
-        idx === drag.index
-          ? { x: drag.originX + deltaX, y: drag.originY + deltaY }
-          : pos,
-      ),
+    const placement = placements.find((item) => item.slot === drag.slot)
+    if (!placement) return
+    const next = clampOffset(
+      placement,
+      { x: drag.origin.x + dx, y: drag.origin.y + dy },
+      template.allowBleed,
     )
+    preview((current) => ({
+      ...current,
+      offsets: current.offsets.map((offset, index) =>
+        index === drag.slot ? next : offset,
+      ),
+    }))
   }
 
-  const handleCanvasPointerUp = (
-    event: React.PointerEvent<HTMLCanvasElement>,
-  ) => {
-    const drag = draggingFrameRef.current
-    if (drag) {
-      if (drag.hasMoved) {
-        markChanged()
-      }
-      draggingFrameRef.current = null
-    }
+  const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current
+    if (drag?.moved) settle(drag.start)
+    dragRef.current = null
+    setIsDragging(false)
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
   }
+
+  // ---- Actions ---------------------------------------------------------------
+
+  const selectTemplate = (id: string) => {
+    if (id === doc.templateId) return
+    // Card slots don't correspond between templates, so start each one clean.
+    commit((current) => ({
+      ...current,
+      templateId: id,
+      offsets: zeroOffsets(),
+      styles: defaultStyles(),
+    }))
+    setSelectedSlot(0)
+  }
+
+  const clearTemplate = () => {
+    commit((current) => ({
+      ...current,
+      templateId: null,
+      offsets: zeroOffsets(),
+      styles: defaultStyles(),
+    }))
+    setSelectedSlot(0)
+    announce("Back to the empty layout. Your images are kept.")
+  }
+
+  const updateStyle = (update: Partial<CardStyle>) =>
+    commit((current) => ({
+      ...current,
+      styles: current.styles.map((style, index) =>
+        index === slot ? { ...style, ...update } : style,
+      ),
+    }))
+
+  const resetStyle = () =>
+    updateStyle({
+      ...defaultCardStyle,
+      shadowColor: doc.styles[slot].shadowColor,
+    })
+
+  const resetPosition = () =>
+    commit((current) => ({
+      ...current,
+      offsets: current.offsets.map((offset, index) =>
+        index === slot ? { x: 0, y: 0 } : offset,
+      ),
+    }))
+
+  const isMoved = (offset: Offset) => offset.x !== 0 || offset.y !== 0
+  const anyMoved = doc.offsets.slice(0, cardCount).some(isMoved)
+
+  const resetAllPositions = () => {
+    commit((current) => ({ ...current, offsets: zeroOffsets() }))
+    announce("All frames back in their template spots")
+  }
+
+  const canReorderImages = doc.images.length > 1
+  const canShuffle = canReorderImages || (!isEmptyState && doc.scatter > 0)
+  const shuffleHint = isEmptyState
+    ? "Add 2 or more images to shuffle them"
+    : "Add 2 or more images, or turn on Scatter, to shuffle"
+
+  const shuffle = () =>
+    commit((current) => ({
+      ...current,
+      seed: Math.floor(Math.random() * 90000) + 10000,
+      imageOrder: canReorderImages
+        ? shuffled(current.images.length, current.imageOrder)
+        : current.imageOrder,
+    }))
 
   const chooseFiles = () => {
     const input = document.createElement("input")
@@ -516,57 +392,91 @@ function App() {
     input.accept = "image/png,image/jpeg,image/webp"
     input.multiple = true
     input.onchange = () => {
-      const files = Array.from(input.files ?? []).slice(0, 3)
-      const valid = files.filter((file) => file.size <= 10 * 1024 * 1024)
+      const files = Array.from(input.files ?? [])
+      const valid = files
+        .filter((file) => file.size <= maxFileBytes)
+        .slice(0, maxCards)
       if (!valid.length) {
-        setStatus("Choose images under 10 MB")
+        announce("Choose images under 10 MB")
         return
       }
-      setImages(valid.map((file) => URL.createObjectURL(file)))
-      setSelectedFrame(0)
-      setStatus(
-        valid.length < files.length
-          ? "Some large files were skipped"
-          : `${valid.length} images added`,
+      const urls = valid.map((file) => URL.createObjectURL(file))
+      commit((current) => ({
+        ...current,
+        images: urls,
+        imageOrder: urls.map((_, index) => index),
+      }))
+      setSelectedSlot(0)
+      const skippedLarge = files.some((file) => file.size > maxFileBytes)
+      const skippedExtra =
+        files.filter((file) => file.size <= maxFileBytes).length > maxCards
+      announce(
+        skippedLarge
+          ? "Some files were over 10 MB and were skipped"
+          : skippedExtra
+            ? `Added the first ${maxCards} images`
+            : `${urls.length} ${urls.length === 1 ? "image" : "images"} added`,
       )
     }
     input.click()
   }
 
   const exportImage = () => {
-    isExportingRef.current = true
-    drawCanvas()
-    const link = document.createElement("a")
-    link.download = `pinterest-thumbnail-${seed}.png`
-    link.href = canvasRef.current?.toDataURL("image/png") ?? ""
-    link.click()
-    isExportingRef.current = false
-    drawCanvas()
-    setStatus("PNG exported")
+    const output = document.createElement("canvas")
+    output.width = canvas.width
+    output.height = canvas.height
+    const context = output.getContext("2d")
+    if (!context) return
+    drawComposition(context, {
+      background: doc.background,
+      placements,
+      imageForSlot: (cardSlot) => {
+        const src = imageSrcForSlot(cardSlot)
+        return src ? imageElements.get(src) : undefined
+      },
+      placeholder: placeholderImage,
+    })
+    output.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.download = `pinterest-thumbnail-${template.id}-${doc.seed}.png`
+      link.href = url
+      link.click()
+      URL.revokeObjectURL(url)
+      announce("PNG exported")
+    }, "image/png")
   }
 
   const copyRecipe = async () => {
-    await navigator.clipboard.writeText(
-      JSON.stringify(
-        {
-          format: "blog-header-16x9",
-          structure,
-          frames: frameCount,
-          frameStyles,
-          framePositions,
-          background,
-          seed,
-        },
-        null,
-        2,
-      ),
-    )
-    setStatus("Recipe copied")
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(
+          {
+            format: "blog-header-16x9",
+            template: doc.templateId,
+            styles: doc.styles.slice(0, cardCount),
+            offsets: doc.offsets.slice(0, cardCount),
+            scatter: scatterSteps[doc.scatter].label,
+            background: doc.background,
+            seed: doc.seed,
+          },
+          null,
+          2,
+        ),
+      )
+      announce("Recipe copied")
+    } catch {
+      announce("Couldn't copy. Check clipboard permissions.")
+    }
   }
 
+  const undoShortcut = isMac ? "⌘Z" : "Ctrl+Z"
+  const redoShortcut = isMac ? "⇧⌘Z" : "Ctrl+Shift+Z"
+
   return (
-    <DesignTokensProvider forceTheme="visualrefresh">
-      <Box color="default" minHeight="100vh">
+    <DesignTokensProvider>
+      <Box color="default" display="flex" direction="column" height="100vh">
         <Box as="header" borderStyle="sm" paddingX={5} paddingY={3}>
           <Flex alignItems="center" justifyContent="between">
             <Flex alignItems="center" gap={3}>
@@ -574,95 +484,119 @@ function App() {
                 alignItems="center"
                 color="brand"
                 display="flex"
-                height={40}
+                height={sizes.logo}
                 justifyContent="center"
                 rounding="circle"
-                width={40}
+                width={sizes.logo}
               >
                 <Icon
                   accessibilityLabel=""
                   color="inverse"
                   icon="pinterest"
-                  size={24}
+                  size={iconSizes.lg}
                 />
               </Box>
-              <Box>
-                <Heading accessibilityLevel={1} size="300">
-                  Thumbnail Studio
-                </Heading>
-              </Box>
+              <Heading accessibilityLevel={1} size="400">
+                Thumbnail Studio
+              </Heading>
             </Flex>
-            <Flex alignItems="center" gap={3}>
-              <Text color="subtle" size="200">
-                {status}
-              </Text>
+            <Flex alignItems="center" gap={2}>
+              <Box aria-live="polite" marginEnd={2}>
+                <Text color="subtle" size="200">
+                  {status}
+                </Text>
+              </Box>
               <IconButton
                 accessibilityLabel="Undo"
                 bgColor="lightGray"
+                disabled={!canUndo}
                 icon="undo"
                 iconColor="darkGray"
+                onClick={undo}
                 size="md"
+                tooltip={{ text: `Undo (${undoShortcut})` }}
               />
-              <Button
-                color="red"
-                iconStart="download"
-                onClick={exportImage}
+              <IconButton
+                accessibilityLabel="Redo"
+                bgColor="lightGray"
+                disabled={!canRedo}
+                icon="redo"
+                iconColor="darkGray"
+                onClick={redo}
                 size="md"
-                text="Export PNG"
+                tooltip={{ text: `Redo (${redoShortcut})` }}
               />
+              <Box marginStart={2}>
+                <Button
+                  color="red"
+                  iconStart="download"
+                  onClick={exportImage}
+                  size="md"
+                  text="Export PNG"
+                />
+              </Box>
             </Flex>
           </Flex>
         </Box>
 
-        <Box display="flex" minHeight="calc(100vh - var(--space-1600))">
-          <Box
-            as="aside"
-            borderStyle="sm"
-            minWidth={360}
-            padding={4}
-            width={360}
-          >
-            <Flex direction="column" gap={5}>
-              <Box>
-                <Box marginBottom={3}>
+        <div
+          className="workspace"
+          style={
+            {
+              "--left-panel-width": `${sizes.leftPanelWidth}px`,
+              "--right-panel-width": `${sizes.rightPanelWidth}px`,
+            } as React.CSSProperties
+          }
+        >
+          {/* Left: format, images, templates */}
+          <div className="workspace-left">
+            <Box
+              as="aside"
+              borderStyle="sm"
+              height="100%"
+              overflow="scrollY"
+              padding={4}
+            >
+              <Flex direction="column" gap={5}>
+                <Flex direction="column" gap={3}>
                   <Text size="100" weight="bold">
                     FORMAT
                   </Text>
-                </Box>
-                <Box color="secondary" padding={3} rounding={3}>
-                  <Flex alignItems="center" gap={2}>
-                    <Icon
-                      accessibilityLabel=""
-                      color="default"
-                      icon="orientation-landscape"
-                      size={20}
-                    />
-                    <Box>
-                      <Text size="200" weight="bold">
-                        Blog Header
-                      </Text>
-                      <Text color="subtle" size="100">
-                        1600 × 900 · 16:9
-                      </Text>
-                    </Box>
-                  </Flex>
-                </Box>
-              </Box>
-
-              <Divider />
-
-              <Box>
-                <Flex alignItems="center" justifyContent="between">
-                  <Text size="100" weight="bold">
-                    IMAGES
-                  </Text>
-                  <Text color="subtle" size="100">
-                    {images.length}/3
-                  </Text>
+                  <Box color="secondary" padding={3} rounding={3}>
+                    <Flex alignItems="center" gap={2}>
+                      <Icon
+                        accessibilityLabel=""
+                        color="default"
+                        icon="orientation-landscape"
+                        size={iconSizes.md}
+                      />
+                      <Flex direction="column">
+                        <Text size="200" weight="bold">
+                          Blog header
+                        </Text>
+                        <Text color="subtle" size="100">
+                          {canvas.width} × {canvas.height} · 16:9
+                        </Text>
+                      </Flex>
+                    </Flex>
+                  </Box>
                 </Flex>
-                <Box marginTop={3}>
+
+                <Divider />
+
+                <Flex direction="column" gap={3}>
+                  <Flex alignItems="center" justifyContent="between">
+                    <Text size="100" weight="bold">
+                      IMAGES
+                    </Text>
+                    <Text color="subtle" size="100">
+                      {doc.images.length}/{maxCards}
+                    </Text>
+                  </Flex>
                   <TapArea
-                    accessibilityLabel="Upload images"
+                    accessibilityLabel={
+                      doc.images.length ? "Replace images" : "Upload images"
+                    }
                     onTap={chooseFiles}
                     rounding={4}
                     tapStyle="compress"
@@ -673,290 +607,220 @@ function App() {
                           accessibilityLabel=""
                           color="subtle"
                           icon="upload-feed"
-                          size={22}
+                          size={iconSizes.lg}
                         />
                         <Text align="center" size="200" weight="bold">
-                          Add your images
+                          {doc.images.length
+                            ? "Replace images"
+                            : "Add your images"}
                         </Text>
                         <Text align="center" color="subtle" size="100">
-                          JPG, PNG or WebP · 10 MB max
+                          Up to {maxCards} · JPG, PNG or WebP · 10 MB max
                         </Text>
                       </Flex>
                     </Box>
                   </TapArea>
-                </Box>
-                <Box marginTop={3} overflow="hidden">
-                  <Flex gap={2}>
-                    {Array.from({ length: frameCount }).map((_, index) => (
-                      <TapArea
-                        accessibilityLabel={`Edit frame ${index + 1}`}
-                        key={index}
-                        onTap={() => setSelectedFrame(index)}
-                        rounding={3}
-                        tapStyle="compress"
-                      >
-                        <Box
-                          alignItems="center"
-                          borderStyle={selectedFrame === index ? "lg" : "sm"}
-                          color="secondary"
-                          display="flex"
-                          height={44}
-                          justifyContent="center"
-                          overflow="hidden"
-                          rounding={3}
-                          width={44}
-                        >
-                          {images[index] ? (
-                            <img
-                              alt=""
-                              className="image-chip"
-                              src={images[index]}
-                            />
-                          ) : (
-                            <Icon
-                              accessibilityLabel=""
-                              color="subtle"
-                              icon="image-portrait"
-                              size={18}
-                            />
-                          )}
-                        </Box>
-                      </TapArea>
-                    ))}
+                  {doc.images.length > 0 && doc.images.length < cardCount ? (
+                    <Text color="subtle" size="100">
+                      {template.name} has {cardCount} frames, so your{" "}
+                      {doc.images.length}{" "}
+                      {doc.images.length === 1
+                        ? "image repeats"
+                        : "images repeat"}
+                      .
+                    </Text>
+                  ) : null}
+                </Flex>
+
+                <Divider />
+
+                <Flex direction="column" gap={3}>
+                  <Flex alignItems="center" justifyContent="between">
+                    <Text size="100" weight="bold">
+                      TEMPLATES
+                    </Text>
+                    {!isEmptyState ? (
+                      <Button
+                        color="transparent"
+                        iconStart="arrow-back"
+                        onClick={clearTemplate}
+                        size="sm"
+                        text="Empty layout"
+                      />
+                    ) : null}
                   </Flex>
-                </Box>
-              </Box>
-
-              <Divider />
-
-              <Box>
-                <Box marginBottom={3}>
-                  <Text size="100" weight="bold">
-                    TEMPLATES
-                  </Text>
-                </Box>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                    gap: "var(--space-200, 8px)",
-                  }}
-                >
-                  {structureOptions.map((option) => (
-                    <TapArea
-                      accessibilityLabel={`${option.label} template`}
-                      key={option.value}
-                      onTap={() => {
-                        setStructure(option.value)
-                        markChanged()
-                      }}
-                      rounding={3}
-                      tapStyle="compress"
-                    >
-                      <Box
-                        alignItems="center"
-                        borderStyle={structure === option.value ? "lg" : "sm"}
-                        color={structure === option.value ? "selected" : "secondary"}
-                        display="flex"
-                        height={64}
-                        justifyContent="center"
-                        padding={2}
-                        rounding={3}
-                      >
-                        <Text
-                          color={structure === option.value ? "inverse" : "default"}
-                          size="200"
-                          weight="bold"
-                        >
-                          {option.label}
-                        </Text>
-                      </Box>
-                    </TapArea>
-                  ))}
-                </div>
-              </Box>
-            </Flex>
-          </Box>
-
-          <Box color="secondary" flex="grow" minWidth={0} padding={6}>
-            <Flex direction="column" gap={4} height="100%">
-              <Flex alignItems="center" justifyContent="between">
-                <Box />
-                <Flex alignItems="center" gap={2}>
-                  <Button
-                    color="gray"
-                    iconStart="shuffles"
-                    onClick={() => {
-                      setSeed(Math.floor(Math.random() * 90000) + 10000)
-                      markChanged()
-                    }}
-                    text="Shuffle"
-                  />
-                  <Button
-                    color="dark"
-                    onClick={() => {
-                      setSelectedFrame((current) => (current + 1) % frameCount)
-                    }}
-                    text={`Frame ${selectedFrame + 1}`}
+                  <TemplatePicker
+                    onSelect={selectTemplate}
+                    selectedId={doc.templateId}
+                    templates={templates}
                   />
                 </Flex>
-                <Button
-                  color="transparent"
-                  iconStart="copy-to-clipboard"
-                  onClick={copyRecipe}
-                  text="Copy recipe"
-                />
-              </Flex>
-
-              <Box
-                alignItems="center"
-                display="flex"
-                flex="grow"
-                justifyContent="center"
-                minHeight={420}
-              >
-                <Box
-                  maxHeight="100%"
-                  maxWidth="100%"
-                  overflow="hidden"
-                  rounding={5}
-                >
-                  <canvas
-                    aria-label={`Preview of ${structure ?? "empty"} thumbnail composition`}
-                    className="artboard artboard-blog"
-                    onPointerCancel={handleCanvasPointerUp}
-                    onPointerDown={handleCanvasPointerDown}
-                    onPointerMove={handleCanvasPointerMove}
-                    onPointerUp={handleCanvasPointerUp}
-                    ref={canvasRef}
-                    role="img"
-                    style={{ touchAction: "none" }}
-                  />
-                </Box>
-              </Box>
-
-              <Box alignItems="center" display="flex" justifyContent="center">
-                <Box
-                  color="default"
-                  maxWidth="100%"
-                  padding={4}
-                  rounding={5}
-                  width="min(65vw, 960px)"
-                >
-                  <Flex alignItems="center" gap={3}>
-                    <Text size="200" weight="bold">
-                      Background
-                    </Text>
-                    <Flex gap={2}>
-                      {backgrounds.map((color) => (
-                        <TapArea
-                          accessibilityLabel={`Use ${color} background`}
-                          key={color}
-                          onTap={() => {
-                            setBackground(color)
-                            markChanged()
-                          }}
-                          rounding="circle"
-                        >
-                          <Box
-                            borderStyle={background === color ? "lg" : "sm"}
-                            dangerouslySetInlineStyle={{
-                              __style: { backgroundColor: color },
-                            }}
-                            height={32}
-                            rounding="circle"
-                            width={32}
-                          />
-                        </TapArea>
-                      ))}
-                    </Flex>
-                  </Flex>
-                </Box>
-              </Box>
-            </Flex>
-          </Box>
-
-          <Box
-            as="aside"
-            borderStyle="sm"
-            minWidth={300}
-            padding={4}
-            width={300}
-          >
-            <Box marginBottom={4}>
-              <Flex alignItems="center" justifyContent="between">
-                <Text size="100" weight="bold">
-                  STYLE
-                </Text>
-                <Text color="subtle" size="100">
-                  Frame {selectedFrame + 1}
-                </Text>
               </Flex>
             </Box>
-            <Flex direction="column" gap={4}>
-              {(
-                [
-                  "scale",
-                  "rotation",
-                  "offset",
-                  "tilt",
-                  "depth",
-                  "stroke",
-                  "shadow",
-                ] as const
-              ).map((key) => (
-                <SliderControl
-                  key={key}
-                  label={
-                    key === "tilt"
-                      ? "3D tilt"
-                      : `${key[0].toUpperCase()}${key.slice(1)}`
-                  }
-                  onChange={(value) => updateFrameStyle(key, value)}
-                  value={selectedStyle[key]}
-                />
-              ))}
-              <Box>
-                <Box marginBottom={2}>
-                  <Text size="200" weight="bold">
-                    Shadow color
-                  </Text>
-                </Box>
-                <Flex gap={2}>
-                  {shadowColors.map((color) => (
-                    <TapArea
-                      accessibilityLabel={`Use ${color} shadow`}
-                      key={color}
-                      onTap={() => {
-                        setFrameStyles((current) =>
-                          current.map((style, index) =>
-                            index === selectedFrame
-                              ? { ...style, shadowColor: color }
-                              : style,
-                          ),
-                        )
-                        markChanged()
-                      }}
-                      rounding="circle"
-                    >
-                      <Box
-                        borderStyle={
-                          selectedStyle.shadowColor === color ? "lg" : "sm"
-                        }
-                        dangerouslySetInlineStyle={{
-                          __style: { backgroundColor: color },
-                        }}
-                        height={28}
-                        rounding="circle"
-                        width={28}
+          </div>
+
+          {/* Center: toolbar, artboard, background */}
+          <div className="workspace-stage">
+            <Box color="secondary" display="flex" height="100%" padding={6}>
+              <Flex direction="column" flex="grow" gap={4} minWidth={0}>
+                <Flex alignItems="center" gap={3} justifyContent="between" wrap>
+                  <Flex alignItems="center" gap={3}>
+                    {canShuffle ? (
+                      <Button
+                        color="white"
+                        iconStart="shuffles"
+                        onClick={shuffle}
+                        text="Shuffle"
                       />
-                    </TapArea>
-                  ))}
+                    ) : (
+                      <Tooltip text={shuffleHint}>
+                        <Button
+                          color="white"
+                          disabled
+                          iconStart="shuffles"
+                          onClick={shuffle}
+                          text="Shuffle"
+                        />
+                      </Tooltip>
+                    )}
+                    <Box
+                      aria-hidden={isEmptyState}
+                      opacity={isEmptyState ? 0.5 : 1}
+                    >
+                      <div inert={isEmptyState}>
+                        <Flex alignItems="center" gap={2}>
+                          <Text size="200" weight="bold">
+                            Scatter
+                          </Text>
+                          <SegmentedControl
+                            items={scatterSteps.map((step) => step.label)}
+                            onChange={({ activeIndex }) => {
+                              if (activeIndex !== doc.scatter)
+                                commit((current) => ({
+                                  ...current,
+                                  scatter: activeIndex,
+                                }))
+                            }}
+                            responsive
+                            selectedItemIndex={doc.scatter}
+                            size="sm"
+                          />
+                        </Flex>
+                      </div>
+                    </Box>
+                  </Flex>
+                  <Flex alignItems="center" gap={2}>
+                    {!isEmptyState ? (
+                      <Button
+                        color="transparent"
+                        disabled={!anyMoved}
+                        iconStart="move-pin"
+                        onClick={resetAllPositions}
+                        text="Reset all positions"
+                      />
+                    ) : null}
+                    <Button
+                      color="transparent"
+                      iconStart="copy-to-clipboard"
+                      onClick={copyRecipe}
+                      text="Copy recipe"
+                    />
+                  </Flex>
                 </Flex>
-              </Box>
-            </Flex>
-          </Box>
-        </Box>
+
+                {violatingSlots.size > 0 ? (
+                  <BannerSlim
+                    iconAccessibilityLabel="Warning"
+                    message={`${listFrames([...violatingSlots].sort((a, b) => a - b))} the ${canvas.margin}px margin. Drag back inside, or lower Size, Rotate, 3D tilt or Scatter.`}
+                    type="warning"
+                  />
+                ) : null}
+
+                <Flex.Item flex="grow" minWidth={0}>
+                  <div className="artboard-frame">
+                    <canvas
+                      aria-label={`Preview of the ${template.name} thumbnail. Drag a frame to move it.`}
+                      className={
+                        isEmptyState
+                          ? "artboard"
+                          : "artboard artboard-draggable"
+                      }
+                      onPointerCancel={handlePointerUp}
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      ref={canvasRef}
+                      role="img"
+                    />
+                  </div>
+                </Flex.Item>
+
+                <Flex justifyContent="center">
+                  <Box color="default" padding={3} rounding={5}>
+                    <Flex alignItems="center" gap={3}>
+                      <Text size="200" weight="bold">
+                        Background
+                      </Text>
+                      <SwatchPicker
+                        colors={backgroundOptions}
+                        label="background"
+                        onChange={(background) => {
+                          if (background !== doc.background)
+                            commit((current) => ({ ...current, background }))
+                        }}
+                        size={sizes.swatchLarge}
+                        value={doc.background}
+                      />
+                    </Flex>
+                  </Box>
+                </Flex>
+              </Flex>
+            </Box>
+          </div>
+
+          {/* Right: frame picker and per-frame style */}
+          <div className="workspace-right">
+            <Box
+              as="aside"
+              borderStyle="sm"
+              height="100%"
+              overflow="scrollY"
+              padding={4}
+            >
+              <Flex direction="column" gap={5}>
+                <Flex direction="column" gap={3}>
+                  <Flex alignItems="center" justifyContent="between">
+                    <Text size="100" weight="bold">
+                      FRAMES
+                    </Text>
+                    <Text color="subtle" size="100">
+                      {isEmptyState
+                        ? `${cardCount} placeholders`
+                        : `${template.name} · ${cardCount}`}
+                    </Text>
+                  </Flex>
+                  <FrameChips
+                    count={cardCount}
+                    imageForSlot={imageSrcForSlot}
+                    onSelect={setSelectedSlot}
+                    selected={slot}
+                    warningSlots={violatingSlots}
+                  />
+                </Flex>
+                <Divider />
+                <StylePanel
+                  enabled={!isEmptyState}
+                  isMoved={isMoved(doc.offsets[slot])}
+                  onChange={updateStyle}
+                  onResetPosition={resetPosition}
+                  onResetStyle={resetStyle}
+                  slot={slot}
+                  style={doc.styles[slot]}
+                />
+              </Flex>
+            </Box>
+          </div>
+        </div>
       </Box>
     </DesignTokensProvider>
   )

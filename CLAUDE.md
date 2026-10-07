@@ -1,6 +1,6 @@
 # Thumbnail Studio
 
-Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails from up to three images placed in Pinterest-style rounded cards. Users pick a template (Arc, Stack, Spread, Grid), style each frame with sliders, and export a PNG.
+Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails from up to six images placed in Pinterest-style rounded cards. Users pick a template (Arc, Stack, Spread, Grid), drag cards within the margins, style each card with stepped controls, and export a PNG.
 
 The value of the tool is its templates. Layouts are designed by hand in Figma and must render exactly as designed.
 
@@ -8,12 +8,13 @@ This project was prototyped in Figma Make and is now developed locally. Open wor
 
 ## Commands
 
+- Node comes from nvm (`. ~/.nvm/nvm.sh`); the Browser pane's `.claude/launch.json` calls Node by absolute path because it doesn't load nvm.
 - `pnpm install`
 - `pnpm dev` starts the Vite dev server
 - `pnpm build` builds for production (it does not typecheck)
-- `pnpm exec tsc --noEmit` typechecks; run it before calling any task done
+- `pnpm typecheck` (or `pnpm exec tsc --noEmit`); run it before calling any task done
 - `pnpm format` formats with oxfmt
-- `pnpm check:tokens` fails on raw color values outside allowed files (added in backlog item 7)
+- `pnpm check:tokens` fails on raw color values outside allowed files
 
 ## Stack
 
@@ -52,7 +53,16 @@ The source of truth is `src/data/templates.json`. It was extracted from Figma fi
 - **The 48px margin is the only hard layout rule.** A card may cross it only on sides listed in that template's `allowBleed`. The canvas clips at its edges.
 - **The 5×5 grid (20px gutter) is a visual guide only.** Nothing snaps to it.
 - **`emptyState` is the default layout** shown before a template is picked. It is not a template option, and it ignores the style sliders.
-- **With every style slider at its default, each template must render exactly as the JSON specifies.**
+- **With every style control at its default and Scatter off, each template must render exactly as the JSON specifies.**
+
+## Code map
+
+- `src/data/templates.ts`: typed access to `templates.json`.
+- `src/data/styleOptions.ts`: the stepped style controls and Scatter levels.
+- `src/lib/composition.ts`: card placement, margin clamping, margin checks, hit testing.
+- `src/lib/drawComposition.ts`: canvas rendering; the overlay (guides, selection) is preview-only.
+- `src/hooks/useHistory.ts`: undo/redo snapshots.
+- `src/components/`: TemplatePicker, FrameChips, StylePanel, StepControl, SwatchPicker.
 
 ## Code conventions
 
