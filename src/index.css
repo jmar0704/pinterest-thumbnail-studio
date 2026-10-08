@@ -162,6 +162,7 @@ body {
 
 /* Frame chips: drag one onto another to swap their images. */
 .frame-chip {
+  height: 100%;
   border-radius: var(--rounding-300);
   touch-action: none;
   cursor: grab;
@@ -202,4 +203,13 @@ body {
   .step-control [role="tab"] {
     transition: none;
   }
+}
+
+/* Blog preview: the design as the lead image of an article card. */
+.preview-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--rounding-400);
 }

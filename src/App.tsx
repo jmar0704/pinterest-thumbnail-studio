@@ -15,6 +15,7 @@ import {
 import "gestalt/dist/gestalt.css"
 import FrameChips from "@/components/FrameChips"
 import StylePanel from "@/components/StylePanel"
+import BlogPreview from "@/components/BlogPreview"
 import ColorTemplatePicker from "@/components/ColorTemplatePicker"
 import DropShadowSwitch from "@/components/DropShadowSwitch"
 import TemplateSettings from "@/components/TemplateSettings"
@@ -131,6 +132,10 @@ function App() {
   const [imagesLoaded, setImagesLoaded] = useState(0)
   /** Whether the selected template is open (its settings replace the grid). */
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [styleExpanded, setStyleExpanded] = useState(false)
+  /** Snapshot of the design shown in the blog preview, or null when closed. */
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewTitle, setPreviewTitle] = useState("")
 
   const template = findTemplate(doc.templateId)
   const isEmptyState = doc.templateId === null
@@ -250,6 +255,9 @@ function App() {
     const onKeyDown = (event: KeyboardEvent) => {
       const modifier = isMac ? event.metaKey : event.ctrlKey
       if (!modifier || event.key.toLowerCase() !== "z") return
+      // Leave text fields (e.g. the preview title) their own undo.
+      const target = event.target as HTMLElement | null
+      if (target?.closest("input, textarea, [contenteditable='true']")) return
       event.preventDefault()
       if (event.shiftKey) redo()
       else undo()
@@ -545,12 +553,13 @@ function App() {
     announce(`Frame ${slot + 1} image removed`)
   }
 
-  const exportImage = () => {
+  /** The thumbnail as exported: no guides, no selection outline. */
+  const renderThumbnail = () => {
     const output = document.createElement("canvas")
     output.width = canvas.width
     output.height = canvas.height
     const context = output.getContext("2d")
-    if (!context) return
+    if (!context) return null
     drawComposition(context, {
       colors: findColorTemplate(doc.colors),
       placements,
@@ -560,6 +569,17 @@ function App() {
       },
       placeholder: placeholderImage,
     })
+    return output
+  }
+
+  const openPreview = () => {
+    const output = renderThumbnail()
+    if (output) setPreviewUrl(output.toDataURL("image/png"))
+  }
+
+  const exportImage = () => {
+    const output = renderThumbnail()
+    if (!output) return
     output.toBlob((blob) => {
       if (!blob) return
       const url = URL.createObjectURL(blob)
@@ -654,62 +674,67 @@ function App() {
             } as React.CSSProperties
           }
         >
-          {/* Left: format, images, templates */}
+          {/* Left: format, images, background, templates */}
           <div className="workspace-left">
-            <Box
-              as="aside"
-              borderStyle="sm"
-              height="100%"
-              overflow="scrollY"
-              padding={4}
-            >
+            <Box as="aside" borderStyle="sm" height="100%" overflow="scrollY" padding={4}>
               <Flex direction="column" gap={5}>
-                <Flex direction="column" gap={3}>
-                  <Text size="100" weight="bold">
-                    BLOG HEADER FORMAT: {canvas.width} × {canvas.height} PIXELS
-                  </Text>
-                </Flex>
+                <Text size="200" weight="bold">
+                  Blog header format: {canvas.width} × {canvas.height} pixels
+                </Text>
+
+                <TapArea
+                  accessibilityLabel="Add images to empty frames"
+                  disabled={totalImages >= maxCards}
+                  onTap={addImages}
+                  rounding={4}
+                  tapStyle="compress"
+                >
+                  <Box borderStyle="sm" padding={4} rounding={4}>
+                    <Flex alignItems="center" direction="column" gap={2}>
+                      <Icon
+                        accessibilityLabel=""
+                        color={totalImages < maxCards ? "subtle" : "disabled"}
+                        icon="upload-feed"
+                        size={iconSizes.lg}
+                      />
+                      <Text
+                        align="center"
+                        color={totalImages < maxCards ? "default" : "disabled"}
+                        size="200"
+                        weight="bold"
+                      >
+                        {totalImages < maxCards ? "Add images" : `All ${maxCards} images added`}
+                      </Text>
+                      <Text align="center" color="subtle" size="100">
+                        JPG or PNG or WebP • Max {maxCards} Images • 10MB Max Per Image
+                      </Text>
+                    </Flex>
+                  </Box>
+                </TapArea>
 
                 <Divider />
 
-                <Flex direction="column" gap={3}>
-                  <TapArea
-                    accessibilityLabel="Add images to empty frames"
-                    disabled={totalImages >= maxCards}
-                    onTap={addImages}
-                    rounding={4}
-                    tapStyle="compress"
-                  >
-                    <Box borderStyle="sm" padding={4} rounding={4}>
-                      <Flex alignItems="center" direction="column" gap={2}>
-                        <Icon
-                          accessibilityLabel=""
-                          color={totalImages < maxCards ? "subtle" : "disabled"}
-                          icon="upload-feed"
-                          size={iconSizes.lg}
-                        />
-                        <Text
-                          align="center"
-                          color={totalImages < maxCards ? "default" : "disabled"}
-                          size="200"
-                          weight="bold"
-                        >
-                          {totalImages < maxCards ? "Add images" : `All ${maxCards} images added`}
-                        </Text>
-                        <Text align="center" color="subtle" size="100">
-                          JPG or PNG or WebP • Max {maxCards} Images • 10MB Max Per Image
-                        </Text>
-                      </Flex>
-                    </Box>
-                  </TapArea>
+                <Flex direction="column" gap={4}>
+                  <ColorTemplatePicker
+                    onChange={(colors) => {
+                      if (colors !== doc.colors) commit((current) => ({ ...current, colors }))
+                    }}
+                    templates={colorTemplates}
+                    value={doc.colors}
+                  />
+                  <DropShadowSwitch
+                    onChange={(on) => updateStyle({ dropShadow: on ? 1 : 0 })}
+                    slot={slot}
+                    switched={doc.styles[activeSlot].dropShadow === 1}
+                  />
                 </Flex>
 
                 <Divider />
 
                 <Flex direction="column" gap={3}>
                   <Flex alignItems="center" justifyContent="between">
-                    <Text size="100" weight="bold">
-                      TEMPLATES
+                    <Text size="200" weight="bold">
+                      Templates
                     </Text>
                     {!isEmptyState ? (
                       <Button
@@ -724,8 +749,8 @@ function App() {
                   {templateOpen && !isEmptyState ? (
                     <TemplateSettings
                       anyMoved={anyMoved}
-                      onBack={closeTemplate}
                       canShuffle={canShuffle}
+                      onBack={closeTemplate}
                       onCopyRecipe={copyRecipe}
                       onResetAllPositions={resetAllPositions}
                       onScatterChange={(index) =>
@@ -738,16 +763,16 @@ function App() {
                     />
                   ) : (
                     <>
-                      <TemplatePicker
-                        onSelect={openTemplate}
-                        selectedId={doc.templateId}
-                        templates={templates}
-                      />
                       <Text color="subtle" size="100">
                         {isEmptyState
                           ? "Pick a template to open its settings."
                           : `Select ${template.name} to open its settings again.`}
                       </Text>
+                      <TemplatePicker
+                        onSelect={openTemplate}
+                        selectedId={doc.templateId}
+                        templates={templates}
+                      />
                     </>
                   )}
                 </Flex>
@@ -755,7 +780,7 @@ function App() {
             </Box>
           </div>
 
-          {/* Center: artboard and colors */}
+          {/* Center: artboard and preview */}
           <div className="workspace-stage">
             <Box color="secondary" display="flex" height="100%" padding={6}>
               <Flex direction="column" flex="grow" gap={4} minWidth={0}>
@@ -783,67 +808,45 @@ function App() {
                 </Flex.Item>
 
                 <Flex justifyContent="center">
-                  <Box color="default" padding={4} rounding={5}>
-                    <Flex direction="column" gap={4}>
-                        <ColorTemplatePicker
-                          onChange={(colors) => {
-                            if (colors !== doc.colors)
-                              commit((current) => ({ ...current, colors }))
-                          }}
-                          templates={colorTemplates}
-                          value={doc.colors}
-                        />
-                      <Divider />
-                      <DropShadowSwitch
-                        onChange={(on) => updateStyle({ dropShadow: on ? 1 : 0 })}
-                        slot={slot}
-                        switched={doc.styles[activeSlot].dropShadow === 1}
-                      />
-                    </Flex>
-                  </Box>
+                  <Button color="white" iconStart="eye" onClick={openPreview} text="Preview" />
                 </Flex>
               </Flex>
             </Box>
           </div>
 
-          {/* Right: frame picker and per-frame style */}
+          {/* Right: frames and per-frame style */}
           <div className="workspace-right">
-            <Box
-              as="aside"
-              borderStyle="sm"
-              height="100%"
-              overflow="scrollY"
-              padding={4}
-            >
-              <Flex direction="column" gap={5}>
-                <Flex direction="column" gap={3}>
-                  <Flex alignItems="center" justifyContent="between">
-                    <Text size="100" weight="bold">
-                      FRAMES
-                    </Text>
-                    <Text color="subtle" size="100">
-                      {isEmptyState
-                        ? `${cardCount} placeholders`
-                        : `${template.name} · ${cardCount}`}
-                    </Text>
-                  </Flex>
-                  <FrameChips
-                    count={cardCount}
-                    imageForSlot={imageSrcForSlot}
-                    onSelect={setSelectedSlot}
-                    onSwap={swapImages}
-                    spareSlots={spareSlots}
-                    selected={slot}
-                    warningSlots={violatingSlots}
-                  />
+            <Box as="aside" borderStyle="sm" height="100%" overflow="scrollY" padding={4}>
+              <Flex direction="column" gap={3}>
+                <Flex alignItems="center" justifyContent="between">
+                  <Text size="200" weight="bold">
+                    Frames
+                  </Text>
+                  <Text color="subtle" size="100">
+                    {isEmptyState ? `${cardCount} placeholders` : `${template.name} · ${cardCount}`}
+                  </Text>
+                </Flex>
+                <FrameChips
+                  count={cardCount}
+                  imageForSlot={imageSrcForSlot}
+                  onSelect={setSelectedSlot}
+                  onSwap={swapImages}
+                  selected={slot}
+                  spareSlots={spareSlots}
+                  warningSlots={violatingSlots}
+                />
+                <Flex direction="column" gap={2}>
                   {slot !== null ? (
-                    <Flex gap={2} wrap>
-                      <Button
-                        iconStart={doc.slotImages[slot] ? "refresh" : "add"}
-                        onClick={replaceImage}
-                        size="sm"
-                        text={`${doc.slotImages[slot] ? "Replace" : "Add"} image for frame ${slot + 1}`}
-                      />
+                    <Flex gap={2}>
+                      <Flex.Item flex="grow">
+                        <Button
+                          fullWidth
+                          iconStart={doc.slotImages[slot] ? "refresh" : "add"}
+                          onClick={replaceImage}
+                          size="sm"
+                          text={`${doc.slotImages[slot] ? "Replace" : "Add"} image for frame ${slot + 1}`}
+                        />
+                      </Flex.Item>
                       {doc.slotImages[slot] ? (
                         <IconButton
                           accessibilityLabel={`Remove image from frame ${slot + 1}`}
@@ -855,15 +858,35 @@ function App() {
                       ) : null}
                     </Flex>
                   ) : null}
+                  <Flex gap={2}>
+                    <Flex.Item flex="grow">
+                      <Button
+                        disabled={!isFrameChanged}
+                        fullWidth
+                        iconStart="move-pin"
+                        onClick={resetFrame}
+                        size="sm"
+                        text="Reset frame"
+                      />
+                    </Flex.Item>
+                    <Flex.Item flex="grow">
+                      <Button
+                        disabled={!canResetAll}
+                        fullWidth
+                        iconStart="refresh"
+                        onClick={resetAll}
+                        size="sm"
+                        text="Reset all"
+                      />
+                    </Flex.Item>
+                  </Flex>
                 </Flex>
                 <Divider />
                 <StylePanel
                   enabled={slot !== null}
-                  canResetAll={canResetAll}
-                  isFrameChanged={isFrameChanged}
+                  expanded={styleExpanded}
                   onChange={updateStyle}
-                  onResetAll={resetAll}
-                  onResetFrame={resetFrame}
+                  onExpandedChange={setStyleExpanded}
                   slot={activeSlot}
                   style={doc.styles[activeSlot]}
                 />
@@ -872,6 +895,15 @@ function App() {
           </div>
         </div>
       </Box>
+
+      {previewUrl ? (
+        <BlogPreview
+          imageUrl={previewUrl}
+          onDismiss={() => setPreviewUrl(null)}
+          onTitleChange={setPreviewTitle}
+          title={previewTitle}
+        />
+      ) : null}
     </DesignTokensProvider>
   )
 }

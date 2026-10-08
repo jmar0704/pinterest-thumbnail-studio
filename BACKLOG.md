@@ -25,6 +25,12 @@ Work from top to bottom, one item per task. Items marked **Decision needed** req
 - **Selection and the Empty State (2026-10-08):** no frame is selected at first. Clicking a frame (canvas or chip) selects it, and clicking empty canvas clears the selection. With nothing selected, the Style panel says "Select a frame to style it" and the per-frame image buttons hide. The Empty State's frames can be selected, dragged (within the 48px margin) and styled; Scatter still only applies to templates.
 - **Drop shadow hint:** with no frame selected, pressing the Drop shadow switch opens a Gestalt Popover above it reading "Select a frame to activate drop shadow" (info icon, no button). It closes on outside click or Escape.
 - **Spare chips are drag-only:** tapping a spare does nothing; drag it onto a frame to use it.
+- **Layout pass (2026-10-08):**
+  - Headings are sentence case ("Blog header format: 1600 × 900 pixels", "Background", "Templates", "Frames", "Style").
+  - Left sidebar, top to bottom: format, Add images, Background (swatches without row labels or center dots) with the Drop shadow switch, Templates. "Pick a template to open its settings." sits right under the Templates heading.
+  - Right sidebar: Frames as a 3-column grid of 4:5 tiles with the frame number as a badge, then the frame's image buttons, then Reset frame / Reset all, then Style as a collapsed-by-default Gestalt Accordion.Expandable. Ten frames fit without scrolling on screens 768px tall or more.
+  - Preview button under the canvas opens a Gestalt Modal: the design as the lead image of a blog listing (16:9, rounded), an editable title, today's date and sample tags, next to two neutral placeholder articles.
+  - ⌘Z / Ctrl+Z is left to text fields when one is focused.
 - **Format heading:** "BLOG HEADER FORMAT: 1600 × 900 PIXELS" (in the panel's all-caps section-label style), with no separate size line.
 - **Step-control hover:** unselected segments in Size, Rotate, 3D tilt, Border (and Scatter, which shares the control) ease to the elevation-accent fill with the raised-top shadow on hover.
 - **Left panel copy:** the IMAGES heading and the "frames filled · spare" count are gone. Under Add images: "JPG or PNG or WebP • Max 10 Images • 10MB Max Per Image". The format size is plain text with no pill.

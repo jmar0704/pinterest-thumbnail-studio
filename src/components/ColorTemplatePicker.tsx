@@ -23,22 +23,11 @@ function Swatch({
       {/* Ring: a gap in the page color, then a selected-color outline. */}
       <Box borderStyle={selected ? "lg" : "sm"} padding={selected ? 1 : 0} rounding="circle">
         <Box
-          alignItems="center"
           dangerouslySetInlineStyle={{ __style: { backgroundColor: colors.background } }}
-          display="flex"
           height={size}
-          justifyContent="center"
           rounding="circle"
           width={size}
-        >
-          {/* The paired drop-shadow color. */}
-          <Box
-            dangerouslySetInlineStyle={{ __style: { backgroundColor: colors.shadow } }}
-            height={sizes.swatchDot}
-            rounding="circle"
-            width={sizes.swatchDot}
-          />
-        </Box>
+        />
       </Box>
     </TapArea>
   )
@@ -74,23 +63,17 @@ export default function ColorTemplatePicker({
           </Text>
         ) : null}
       </Flex>
+      {/* Light backgrounds first, then deep ones, each group on its own lines. */}
       {rows.map((row) => (
-        <Flex alignItems="center" gap={3} key={row.label}>
-          <Box width={sizes.colorRowLabel}>
-            <Text color="subtle" size="100">
-              {row.label}
-            </Text>
-          </Box>
-          <Flex gap={2} wrap>
-            {row.items.map((template) => (
-              <Swatch
-                colors={template}
-                key={template.id}
-                onSelect={() => onChange(template.id)}
-                selected={template.id === value}
-              />
-            ))}
-          </Flex>
+        <Flex gap={2} key={row.label} wrap>
+          {row.items.map((template) => (
+            <Swatch
+              colors={template}
+              key={template.id}
+              onSelect={() => onChange(template.id)}
+              selected={template.id === value}
+            />
+          ))}
         </Flex>
       ))}
     </Flex>

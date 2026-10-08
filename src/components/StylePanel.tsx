@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Icon, Text } from "gestalt"
+import { Accordion, Box, Flex, Icon, Text } from "gestalt"
 import StepControl from "@/components/StepControl"
 import {
   borderSteps,
@@ -21,40 +21,27 @@ const controls: { key: StepKey; label: string; steps: Step<unknown>[] }[] = [
   { key: "border", label: "Border", steps: borderSteps },
 ]
 
+/**
+ * Per-frame style controls, tucked into a "Style" dropdown (Gestalt
+ * Accordion.Expandable) so the frame grid above stays in view.
+ */
 export default function StylePanel({
   enabled,
   slot,
   style,
-  isFrameChanged,
-  canResetAll,
+  expanded,
+  onExpandedChange,
   onChange,
-  onResetFrame,
-  onResetAll,
 }: {
   enabled: boolean
   slot: number
   style: CardStyle
-  /** The selected frame was moved or styled. */
-  isFrameChanged: boolean
-  /** Anything differs from the template's original design. */
-  canResetAll: boolean
+  expanded: boolean
+  onExpandedChange: (expanded: boolean) => void
   onChange: (update: Partial<CardStyle>) => void
-  onResetFrame: () => void
-  onResetAll: () => void
 }) {
-  return (
+  const content = (
     <Flex direction="column" gap={4}>
-      <Flex alignItems="center" justifyContent="between">
-        <Text size="100" weight="bold">
-          STYLE
-        </Text>
-        {enabled ? (
-          <Text color="subtle" size="100">
-            Frame {slot + 1}
-          </Text>
-        ) : null}
-      </Flex>
-
       {!enabled ? (
         <Box color="secondary" padding={3} rounding={3}>
           <Flex alignItems="center" gap={2}>
@@ -62,24 +49,7 @@ export default function StylePanel({
             <Text size="200">Select a frame to style it.</Text>
           </Flex>
         </Box>
-      ) : (
-        <Flex gap={2} wrap>
-          <Button
-            disabled={!isFrameChanged}
-            iconStart="move-pin"
-            onClick={onResetFrame}
-            size="sm"
-            text="Reset frame"
-          />
-          <Button
-            disabled={!canResetAll}
-            iconStart="refresh"
-            onClick={onResetAll}
-            size="sm"
-            text="Reset all"
-          />
-        </Flex>
-      )}
+      ) : null}
 
       {/* Disabled: dimmed, inert, and skipped by assistive tech. */}
       <Box
@@ -103,5 +73,21 @@ export default function StylePanel({
         </div>
       </Box>
     </Flex>
+  )
+
+  return (
+    <Accordion.Expandable
+      borderStyle="none"
+      expandedIndex={expanded ? 0 : null}
+      id="style-panel"
+      items={[
+        {
+          title: enabled ? `Style · Frame ${slot + 1}` : "Style",
+          children: content,
+        },
+      ]}
+      onExpandedChange={(index) => onExpandedChange(index === 0)}
+      size="sm"
+    />
   )
 }

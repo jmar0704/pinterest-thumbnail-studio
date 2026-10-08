@@ -3,11 +3,11 @@
 export const sizes = {
   leftPanelWidth: 320,
   rightPanelWidth: 320,
-  frameChip: 40,
+  /** The frame tile that follows the pointer while dragging (4:5, like the tiles). */
+  dragGhostWidth: 64,
+  dragGhostHeight: 80,
   swatchLarge: 32,
-  swatchDot: 12,
-  colorRowLabel: 40,
-  previewMinHeight: 420,
+  previewModalWidth: 1120,
 } as const
 
 /** Gestalt icon sizes used in the app (24px grid; 16 and 20 for dense UI). */

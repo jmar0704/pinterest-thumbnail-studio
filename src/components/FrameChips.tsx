@@ -1,5 +1,5 @@
 import { useRef, useState } from "react"
-import { Box, Flex, Icon, TapArea, Text } from "gestalt"
+import { Box, Icon, TapArea, Text } from "gestalt"
 import { iconSizes, sizes } from "@/theme/sizes"
 
 type Drag = {
@@ -14,17 +14,17 @@ function ChipFace({ src }: { src: string | undefined }) {
   return src ? (
     <img alt="" className="image-chip" draggable={false} src={src} />
   ) : (
-    <Icon accessibilityLabel="" color="subtle" icon="image-portrait" size={iconSizes.md} />
+    <Icon accessibilityLabel="" color="subtle" icon="image-portrait" size={iconSizes.lg} />
   )
 }
 
 /**
- * One chip per card in the current layout, showing that card's image.
- * Tap to select a frame. Drag a chip onto another (or press Alt+←/→) to swap
- * their images.
+ * The current layout's frames as a 3-column grid of portrait tiles, each
+ * showing that frame's image with its number as a badge. Tap a tile to select
+ * the frame. Drag a tile onto another (or press Alt+←/→) to swap their images.
  *
  * Images that don't fit the layout (e.g. a 4th image in a 3-frame template)
- * follow as greyed "spare" chips. Drag one onto a frame to use it there.
+ * follow as greyed "Spare" tiles. Drag one onto a frame to use it there.
  */
 export default function FrameChips({
   count,
@@ -72,8 +72,7 @@ export default function FrameChips({
       drag.active = true
       event.currentTarget.setPointerCapture(event.pointerId)
     }
-    const over = slotAt(event.clientX, event.clientY)
-    setDragging({ from: drag.from, over })
+    setDragging({ from: drag.from, over: slotAt(event.clientX, event.clientY) })
     setGhost({ x: event.clientX, y: event.clientY })
   }
 
@@ -85,7 +84,7 @@ export default function FrameChips({
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
     const over = slotAt(event.clientX, event.clientY)
-    // The click that ends a drag shouldn't also select the chip under it.
+    // The click that ends a drag shouldn't also select the tile under it.
     suppressTapRef.current = true
     window.setTimeout(() => (suppressTapRef.current = false))
     setDragging(null)
@@ -93,10 +92,12 @@ export default function FrameChips({
     if (commit && over !== null && over !== drag.from) onSwap(drag.from, over)
   }
 
+  const slots = [...Array.from({ length: count }, (_, slot) => slot), ...spareSlots]
+
   return (
     <>
-      <Flex gap={2} wrap>
-        {[...Array.from({ length: count }, (_, slot) => slot), ...spareSlots].map((slot) => {
+      <Box display="flex" marginEnd={-1} marginStart={-1} wrap>
+        {slots.map((slot) => {
           const isSpare = slot >= count
           const src = imageForSlot(slot)
           const isSelected = !isSpare && slot === selected
@@ -104,77 +105,85 @@ export default function FrameChips({
           const isSource = dragging?.from === slot
           const isTarget = dragging !== null && dragging.over === slot && !isSource
           return (
-            <div
-              className={isTarget ? "frame-chip frame-chip-target" : "frame-chip"}
-              data-frame-slot={slot}
-              key={slot}
-              onKeyDown={(event) => {
-                if (!event.altKey) return
-                const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0
-                const to = slot + step
-                if (!isSpare && step && to >= 0 && to < count) {
-                  event.preventDefault()
-                  onSwap(slot, to)
-                }
-              }}
-              onPointerCancel={(event) => finishDrag(event, false)}
-              onPointerDown={onPointerDown(slot)}
-              onPointerMove={onPointerMove}
-              onPointerUp={(event) => finishDrag(event, true)}
-            >
-              <TapArea
-                accessibilityLabel={
-                  isSpare
-                    ? "Spare image, not in this layout. Drag it onto a frame to use it."
-                    : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${hasWarning ? ", crosses the margin" : ""}. Drag, or press Alt plus arrow keys, to swap images.`
-                }
-                onTap={() => {
-                  // Spares only move by dragging; tapping them does nothing.
-                  if (suppressTapRef.current || isSpare) return
-                  onSelect(slot)
+            <Box column={4} key={slot} padding={1}>
+              <div
+                className={isTarget ? "frame-chip frame-chip-target" : "frame-chip"}
+                data-frame-slot={slot}
+                onKeyDown={(event) => {
+                  if (!event.altKey || isSpare) return
+                  const step =
+                    event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0
+                  const to = slot + step
+                  if (step && to >= 0 && to < count) {
+                    event.preventDefault()
+                    onSwap(slot, to)
+                  }
                 }}
-                role="button"
-                rounding={3}
-                tapStyle="compress"
+                onPointerCancel={(event) => finishDrag(event, false)}
+                onPointerDown={onPointerDown(slot)}
+                onPointerMove={onPointerMove}
+                onPointerUp={(event) => finishDrag(event, true)}
               >
-                <Flex alignItems="center" direction="column" gap={1}>
+                <TapArea
+                  accessibilityLabel={
+                    isSpare
+                      ? "Spare image, not in this layout. Drag it onto a frame to use it."
+                      : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${hasWarning ? ", crosses the margin" : ""}. Drag, or press Alt plus arrow keys, to swap images.`
+                  }
+                  onTap={() => {
+                    // Spares only move by dragging; tapping them does nothing.
+                    if (suppressTapRef.current || isSpare) return
+                    onSelect(slot)
+                  }}
+                  role="button"
+                  rounding={3}
+                  tapStyle="compress"
+                >
                   <Box
                     alignItems="center"
                     borderStyle={isSelected ? "lg" : "sm"}
                     color="secondary"
+                    dangerouslySetInlineStyle={{ __style: { aspectRatio: "4 / 5" } }}
                     display="flex"
-                    height={sizes.frameChip}
                     justifyContent="center"
                     opacity={isSource || isSpare ? 0.4 : 1}
                     overflow="hidden"
+                    position="relative"
                     rounding={3}
-                    width={sizes.frameChip}
+                    width="100%"
                   >
                     <ChipFace src={src} />
-                  </Box>
-                  <Flex alignItems="center" gap={1}>
+                    {/* Frame number (or "Spare") badge. */}
+                    <Box left margin={1} position="absolute" top>
+                      <Box
+                        color={isSelected ? "selected" : "default"}
+                        paddingX={2}
+                        rounding="pill"
+                      >
+                        <Text color={isSelected ? "inverse" : "default"} size="100" weight="bold">
+                          {isSpare ? "Spare" : slot + 1}
+                        </Text>
+                      </Box>
+                    </Box>
                     {hasWarning ? (
-                      <Icon
-                        accessibilityLabel=""
-                        color="warning"
-                        icon="workflow-status-warning"
-                        size={iconSizes.sm - 4}
-                      />
+                      <Box margin={1} position="absolute" right top>
+                        <Box color="default" padding={1} rounding="circle">
+                          <Icon
+                            accessibilityLabel=""
+                            color="warning"
+                            icon="workflow-status-warning"
+                            size={iconSizes.sm}
+                          />
+                        </Box>
+                      </Box>
                     ) : null}
-                    <Text
-                      color={isSelected ? "default" : "subtle"}
-                      size="100"
-                      weight={isSelected ? "bold" : "normal"}
-                    >
-                      {isSpare ? "Spare" : slot + 1}
-                    </Text>
-                  </Flex>
-                </Flex>
-              </TapArea>
-            </div>
+                  </Box>
+                </TapArea>
+              </div>
+            </Box>
           )
         })}
-      </Flex>
+      </Box>
       {spareSlots.length ? (
         <Text color="subtle" size="100">
           {spareSlots.length === 1 ? "1 image doesn't" : `${spareSlots.length} images don't`} fit
@@ -182,23 +191,19 @@ export default function FrameChips({
         </Text>
       ) : null}
 
-      {/* The chip being dragged follows the pointer. */}
+      {/* The tile being dragged follows the pointer. */}
       {dragging && ghost ? (
-        <div
-          aria-hidden
-          className="frame-chip-ghost"
-          style={{ left: ghost.x, top: ghost.y }}
-        >
+        <div aria-hidden className="frame-chip-ghost" style={{ left: ghost.x, top: ghost.y }}>
           <Box
             alignItems="center"
             borderStyle="lg"
             color="secondary"
             display="flex"
-            height={sizes.frameChip}
+            height={sizes.dragGhostHeight}
             justifyContent="center"
             overflow="hidden"
             rounding={3}
-            width={sizes.frameChip}
+            width={sizes.dragGhostWidth}
           >
             <ChipFace src={imageForSlot(dragging.from)} />
           </Box>
