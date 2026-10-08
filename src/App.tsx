@@ -16,6 +16,7 @@ import "gestalt/dist/gestalt.css"
 import FrameChips from "@/components/FrameChips"
 import StylePanel from "@/components/StylePanel"
 import ColorTemplatePicker from "@/components/ColorTemplatePicker"
+import DropShadowSwitch from "@/components/DropShadowSwitch"
 import TemplateSettings from "@/components/TemplateSettings"
 import TemplatePicker from "@/components/TemplatePicker"
 import useHistory from "@/hooks/useHistory"
@@ -442,6 +443,16 @@ function App() {
       announce(`Frame ${slot + 1} image ${doc.slotImages[slot] ? "replaced" : "added"}`)
     })
 
+  const swapImages = (from: number, to: number) => {
+    commit((current) => {
+      const slotImages = [...current.slotImages]
+      ;[slotImages[from], slotImages[to]] = [slotImages[to], slotImages[from]]
+      return { ...current, slotImages }
+    })
+    setSelectedSlot(to)
+    announce(`Swapped frames ${from + 1} and ${to + 1}`)
+  }
+
   const removeImage = () => {
     commit((current) => ({
       ...current,
@@ -574,22 +585,9 @@ function App() {
                     FORMAT: BLOG HEADER
                   </Text>
                   <Box color="secondary" padding={3} rounding={3}>
-                    <Flex alignItems="center" gap={2}>
-                      <Icon
-                        accessibilityLabel=""
-                        color="default"
-                        icon="orientation-landscape"
-                        size={iconSizes.md}
-                      />
-                      <Flex direction="column">
-                        <Text size="200" weight="bold">
-                          {canvas.width} × {canvas.height}
-                        </Text>
-                        <Text color="subtle" size="100">
-                          16:9 landscape
-                        </Text>
-                      </Flex>
-                    </Flex>
+                    <Text size="300">
+                      {canvas.width} × {canvas.height}
+                    </Text>
                   </Box>
                 </Flex>
 
@@ -721,14 +719,23 @@ function App() {
 
                 <Flex justifyContent="center">
                   <Box color="default" padding={4} rounding={5}>
-                    <ColorTemplatePicker
-                      onChange={(colors) => {
-                        if (colors !== doc.colors)
-                          commit((current) => ({ ...current, colors }))
-                      }}
-                      templates={colorTemplates}
-                      value={doc.colors}
-                    />
+                    <Flex direction="column" gap={4}>
+                        <ColorTemplatePicker
+                          onChange={(colors) => {
+                            if (colors !== doc.colors)
+                              commit((current) => ({ ...current, colors }))
+                          }}
+                          templates={colorTemplates}
+                          value={doc.colors}
+                        />
+                      <Divider />
+                      <DropShadowSwitch
+                        enabled={!isEmptyState}
+                        onChange={(on) => updateStyle({ dropShadow: on ? 1 : 0 })}
+                        slot={slot}
+                        switched={doc.styles[slot].dropShadow === 1}
+                      />
+                    </Flex>
                   </Box>
                 </Flex>
               </Flex>
@@ -760,6 +767,7 @@ function App() {
                     count={cardCount}
                     imageForSlot={imageSrcForSlot}
                     onSelect={setSelectedSlot}
+                    onSwap={swapImages}
                     selected={slot}
                     warningSlots={violatingSlots}
                   />

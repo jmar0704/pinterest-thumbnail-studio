@@ -66,7 +66,7 @@ export default function ColorTemplatePicker({
     <Flex direction="column" gap={3}>
       <Flex alignItems="baseline" gap={2}>
         <Text size="200" weight="bold">
-          Background &amp; drop shadow
+          Background
         </Text>
         {current ? (
           <Text color="subtle" size="100">

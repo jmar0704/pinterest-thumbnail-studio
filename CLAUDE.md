@@ -1,8 +1,8 @@
 # Thumbnail Studio
 
-Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails by placing one image per Pinterest-style rounded card (up to six). Users pick a template (Arc, Stack, Spread, Grid), drag cards within the margins, style each card with stepped controls, and export a PNG.
+Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails by placing one image per Pinterest-style rounded card (up to ten, in Grid). Users pick a template (Arc, Stack, Spread, Grid), drag cards within the margins, style each card with stepped controls, and export a PNG.
 
-The value of the tool is its templates. Layouts are designed by hand in Figma and must render exactly as designed.
+The value of the tool is its templates. Layouts were designed by hand in Figma and now live in `src/data/templates.json`; they must render exactly as that file specifies.
 
 This project was prototyped in Figma Make and is now developed locally. Open work is tracked in `BACKLOG.md`.
 
@@ -45,9 +45,9 @@ Canvas drawing code can't read CSS variables directly. If it needs a UI token, r
 
 ## Templates
 
-The source of truth is `src/data/templates.json`. It was extracted from Figma file `XyvXAvzsiYBcNrLaeaslrO`, page "Templates" (node `85:874`), and each template records its Figma node ID.
+The source of truth is `src/data/templates.json`. It was first extracted from Figma file `XyvXAvzsiYBcNrLaeaslrO`, page "Templates" (node `85:874`), and each template records its Figma node ID. Since 2026-10-08 the geometry is maintained in the JSON directly (the Grid's left and right edge columns were added there), so Figma may lag behind it.
 
-- **Never hand-edit template geometry to fix a layout bug.** If a template renders wrong, the bug is in the rendering code. If the design itself must change, it changes in Figma first and is re-extracted.
+- **Don't edit template geometry to fix a rendering bug.** If a template renders differently from its JSON, the bug is in the rendering code (for example, `gestalt.css` sets `svg * { transform-box: fill-box }`, which broke the picker thumbnails' rotation pivots). Change the JSON only when the design itself changes.
 - **Cards are always 450×650 with a 48 corner radius.** Templates only change position, rotation, and stacking order.
 - **`cx` and `cy` are card centers** in canvas pixels. **`rotate` is in degrees, clockwise positive**, already converted from Figma's counter-clockwise convention. **`z` of 0 is the back.**
 - **The 48px margin is the only hard layout rule.** A card may cross it only on sides listed in that template's `allowBleed`. The canvas clips at its edges.
@@ -64,7 +64,7 @@ The source of truth is `src/data/templates.json`. It was extracted from Figma fi
 - `src/hooks/useHistory.ts`: undo/redo snapshots.
 - `src/theme/artworkPalette.ts`: color templates (background + paired drop-shadow glow) and other artwork colors.
 - `src/lib/viewTransition.ts`: View Transition helper for opening a template.
-- `src/components/`: TemplatePicker, LayoutThumbnail, TemplateSettings (the opened template), FrameChips, StylePanel, StepControl, ColorTemplatePicker.
+- `src/components/`: TemplatePicker, LayoutThumbnail, TemplateSettings (the opened template), FrameChips (tap to select, drag to swap images), StylePanel, StepControl, ColorTemplatePicker, DropShadowSwitch.
 
 ## Code conventions
 

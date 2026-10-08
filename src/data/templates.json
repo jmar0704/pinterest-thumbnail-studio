@@ -92,14 +92,18 @@
       "id": "grid",
       "name": "Grid",
       "figmaNodeId": "85:907",
-      "allowBleed": ["top", "bottom"],
+      "allowBleed": ["top", "right", "bottom", "left"],
       "cards": [
         { "z": 0, "cx": 318, "cy": 33, "rotate": 0 },
         { "z": 1, "cx": 318, "cy": 715, "rotate": 0 },
         { "z": 2, "cx": 800, "cy": 828, "rotate": 0 },
         { "z": 3, "cx": 800, "cy": 146, "rotate": 0 },
         { "z": 4, "cx": 1282, "cy": 763, "rotate": 0 },
-        { "z": 5, "cx": 1282, "cy": 81, "rotate": 0 }
+        { "z": 5, "cx": 1282, "cy": 81, "rotate": 0 },
+        { "z": 6, "cx": -164, "cy": 146, "rotate": 0 },
+        { "z": 7, "cx": -164, "cy": 828, "rotate": 0 },
+        { "z": 8, "cx": 1764, "cy": 16, "rotate": 0 },
+        { "z": 9, "cx": 1764, "cy": 698, "rotate": 0 }
       ]
     }
   ]

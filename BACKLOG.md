@@ -16,7 +16,11 @@ Work from top to bottom, one item per task. Items marked **Decision needed** req
 - **Header:** no Pinterest logo; just the "Thumbnail Studio" title.
 - **Template settings (updated 2026-10-08):** picking a template opens it like a folder. The tile grows into a panel that replaces the grid (View Transitions API, instant when unsupported or with reduced motion), holding Scatter, Shuffle, Reset all positions and Copy recipe. A back arrow returns to the grid. Settings stay in view however many templates there are.
 - **3D tilt:** both directions: L 30° · L 15° · Off · R 15° · R 30°.
-- **Format section:** labeled "FORMAT: BLOG HEADER"; the card shows "1600 × 900".
+- **Format section:** labeled "FORMAT: BLOG HEADER"; the box shows only "1600 × 900" as body-default text.
+- **Template thumbnails fixed (2026-10-08):** Arc and Spread looked wrong in the picker because `gestalt.css` sets `svg * { transform-box: fill-box }`, so rotations pivoted around the wrong point. Thumbnails now pivot in the view box. The canvas and export were always correct.
+- **Grid edge columns:** 4 cards added in `templates.json`, one 482px column step outside the existing columns (cx −164 and 1764), with only y changed (left 146/828, right 16/698). Grid now bleeds on all four sides, so about 60px of each edge card shows. On bleed sides, dragging keeps at least 48px of a card on the canvas.
+- **Reordering images:** drag a frame chip onto another to swap their images (Alt+←/→ from the keyboard). Styles and positions stay with the frame.
+- **Drop shadow placement:** the switch sits under the Background colors (the container below the canvas, now titled "Background") and applies to the selected frame.
 - **Color templates (background + drop shadow):** background and shadow color are chosen together, following the colored-shadow pairs spec. There are 19 options: White (with the neutral gray-roboflow-800 glow, the default) plus 9 hue ramps in two directions. Light means a `-50` background with a `-800` glow and 11px spread; deep means a `-800` background with a `-50` glow and 16px spread. Every glow is 25% opacity, 50px blur, no offset. The picker sits below the canvas.
 - **Drop shadow** (renamed from Shadow) is a per-card Off/On control. The glow is drawn by blurring a copy of the card enlarged by the spread, because canvas shadows have no spread. The old shadow strength steps and per-card shadow color are gone.
 
@@ -56,4 +60,4 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Arrow-key nudging for the selected card (dragging is pointer-only).
 - Replace a single frame's image instead of re-uploading all of them.
 - 2× export for high-resolution screens.
-- Check the rendering against the Figma file once the Figma MCP server is authorized.
+- Sync Figma with `templates.json` (the Grid edge columns exist only in the JSON) once the Figma MCP server is authorized.

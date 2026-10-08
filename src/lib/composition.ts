@@ -171,9 +171,10 @@ function clampAxis(
   bleedMax: boolean,
 ) {
   const margin = canvas.margin
-  // On a bleed side the card may run off the canvas, but its center stays on it.
-  const lower = bleedMin ? 0 : margin - relMin
-  const upper = bleedMax ? size : size - margin - relMax
+  // On a bleed side the card may run off the canvas, but at least a margin's
+  // width of it stays visible so it can be grabbed again.
+  const lower = bleedMin ? margin - relMax : margin - relMin
+  const upper = bleedMax ? size - margin - relMin : size - margin - relMax
   if (lower > upper) return (lower + upper) / 2
   return Math.min(upper, Math.max(lower, value))
 }

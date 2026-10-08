@@ -54,6 +54,12 @@ body {
 }
 
 .template-card {
+  /*
+   * gestalt.css sets `svg * { transform-box: fill-box }`, which makes
+   * rotate(angle cx cy) pivot around the wrong point. Card rotations are in
+   * canvas coordinates, so pivot in the SVG's view box.
+   */
+  transform-box: view-box;
   fill: var(--color-background-secondary-base);
   stroke: var(--color-border-default);
   stroke-width: 16;
@@ -152,4 +158,26 @@ body {
   .template-settings-body {
     animation: none;
   }
+}
+
+/* Frame chips: drag one onto another to swap their images. */
+.frame-chip {
+  border-radius: var(--rounding-300);
+  touch-action: none;
+  cursor: grab;
+}
+
+.frame-chip-target {
+  outline: var(--g-border-width-lg) solid var(--color-border-focus);
+  outline-offset: var(--space-100);
+}
+
+.frame-chip-ghost {
+  position: fixed;
+  z-index: 10;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  border-radius: var(--rounding-300);
+  box-shadow: var(--elevation-floating);
+  cursor: grabbing;
 }

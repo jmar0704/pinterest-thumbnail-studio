@@ -3,7 +3,6 @@ import StepControl from "@/components/StepControl"
 import {
   borderSteps,
   defaultCardStyle,
-  dropShadowSteps,
   isDefaultStyle,
   rotateSteps,
   sizeSteps,
@@ -13,14 +12,14 @@ import {
 } from "@/data/styleOptions"
 import { iconSizes } from "@/theme/sizes"
 
-type StepKey = keyof CardStyle
+// Drop shadow lives with the Background colors (DropShadowSwitch).
+type StepKey = Exclude<keyof CardStyle, "dropShadow">
 
 const controls: { key: StepKey; label: string; steps: Step<unknown>[] }[] = [
   { key: "size", label: "Size", steps: sizeSteps },
   { key: "rotate", label: "Rotate", steps: rotateSteps },
   { key: "tilt", label: "3D tilt", steps: tiltSteps },
   { key: "border", label: "Border", steps: borderSteps },
-  { key: "dropShadow", label: "Drop shadow", steps: dropShadowSteps },
 ]
 
 export default function StylePanel({
