@@ -666,10 +666,7 @@ function App() {
               <Flex direction="column" gap={5}>
                 <Flex direction="column" gap={3}>
                   <Text size="100" weight="bold">
-                    FORMAT: BLOG HEADER
-                  </Text>
-                  <Text size="300">
-                    {canvas.width} × {canvas.height}
+                    BLOG HEADER FORMAT: {canvas.width} × {canvas.height} PIXELS
                   </Text>
                 </Flex>
 

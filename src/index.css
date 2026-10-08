@@ -181,3 +181,25 @@ body {
   box-shadow: var(--elevation-floating);
   cursor: grabbing;
 }
+
+/*
+ * Stepped style controls: unselected segments ease to a lighter fill on hover
+ * so it's clear which step you're about to pick. Gestalt has no motion tokens,
+ * so the 160ms ease-out is flagged in BACKLOG.md with the other durations.
+ */
+.step-control [role="tab"] {
+  transition:
+    background-color 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+
+.step-control [role="tab"][aria-selected="false"]:hover {
+  background-color: var(--color-background-elevation-accent);
+  box-shadow: var(--elevation-raised-top);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-control [role="tab"] {
+    transition: none;
+  }
+}

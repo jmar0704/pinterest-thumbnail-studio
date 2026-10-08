@@ -42,14 +42,17 @@ export default function StepControl<T>({
           />
         </Box>
       </Flex>
-      <SegmentedControl
-        items={steps.map((step) => step.label)}
-        onChange={({ activeIndex }) => {
-          if (activeIndex !== value) onChange(activeIndex)
-        }}
-        selectedItemIndex={value}
-        size="sm"
-      />
+      {/* Wrapper scopes the hover styles in index.css to these segments. */}
+      <div className="step-control">
+        <SegmentedControl
+          items={steps.map((step) => step.label)}
+          onChange={({ activeIndex }) => {
+            if (activeIndex !== value) onChange(activeIndex)
+          }}
+          selectedItemIndex={value}
+          size="sm"
+        />
+      </div>
     </Flex>
   )
 }
