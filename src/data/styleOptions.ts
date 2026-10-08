@@ -19,11 +19,16 @@ export const rotateSteps: Step<number>[] = [
   { label: "+10°", value: 10, description: "10° clockwise" },
 ]
 
-/** Simulated turn around the card's vertical axis, in degrees. */
+/**
+ * Simulated turn around the card's vertical axis, in degrees. Negative turns
+ * the card to face left, positive to face right.
+ */
 export const tiltSteps: Step<number>[] = [
+  { label: "L 30°", value: -30, description: "Strong turn to the left" },
+  { label: "L 15°", value: -15, description: "Slight turn to the left" },
   { label: "Off", value: 0, description: "Flat" },
-  { label: "Subtle", value: 15, description: "Slight 3D turn" },
-  { label: "Strong", value: 30, description: "Pronounced 3D turn" },
+  { label: "R 15°", value: 15, description: "Slight turn to the right" },
+  { label: "R 30°", value: 30, description: "Strong turn to the right" },
 ]
 
 /** Border width in canvas px. */
@@ -61,7 +66,7 @@ export type CardStyle = {
 export const defaultCardStyle: CardStyle = {
   size: 1,
   rotate: 2,
-  tilt: 0,
+  tilt: 2,
   border: 0,
   dropShadow: 0,
 }

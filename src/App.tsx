@@ -34,6 +34,7 @@ import {
   type Offset,
 } from "@/lib/composition"
 import { drawComposition } from "@/lib/drawComposition"
+import { withViewTransition } from "@/lib/viewTransition"
 import { colorTemplates, findColorTemplate, whiteColorTemplate } from "@/theme/artworkPalette"
 import { iconSizes, sizes } from "@/theme/sizes"
 
@@ -45,9 +46,8 @@ type Doc = {
   colors: string
   seed: number
   scatter: number
-  images: string[]
-  /** Permutation of image indexes; slot i shows images[imageOrder[i % n]]. */
-  imageOrder: number[]
+  /** One image per card slot; null shows the placeholder. Images never repeat. */
+  slotImages: (string | null)[]
 }
 
 const zeroOffsets = (): Offset[] =>
@@ -62,8 +62,7 @@ const initialDoc: Doc = {
   colors: whiteColorTemplate.id,
   seed: 48213,
   scatter: defaultScatter,
-  images: [],
-  imageOrder: [],
+  slotImages: Array.from({ length: maxCards }, () => null),
 }
 
 const maxFileBytes = 10 * 1024 * 1024
@@ -77,17 +76,19 @@ function readToken(name: string) {
     .trim()
 }
 
-function shuffled(length: number, avoid: number[]) {
-  const order = Array.from({ length }, (_, index) => index)
-  if (length < 2) return order
+function shuffled<T>(items: T[]) {
+  if (new Set(items).size < 2) return items
+  const order = [...items]
   do {
-    for (let i = length - 1; i > 0; i -= 1) {
+    for (let i = order.length - 1; i > 0; i -= 1) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[order[i], order[j]] = [order[j], order[i]]
     }
-  } while (order.every((value, index) => value === avoid[index]))
+  } while (order.every((value, index) => value === items[index]))
   return order
 }
+
+const imagesOf = (doc: Doc) => doc.slotImages.filter((src): src is string => src !== null)
 
 function listFrames(slots: number[]) {
   const names = slots.map((slot) => slot + 1)
@@ -97,8 +98,8 @@ function listFrames(slots: number[]) {
 
 // Object URLs stay alive while any undo step can still show them.
 function revokeUnused(dropped: Doc[], retained: Doc[]) {
-  const live = new Set(retained.flatMap((doc) => doc.images))
-  for (const url of new Set(dropped.flatMap((doc) => doc.images))) {
+  const live = new Set(retained.flatMap(imagesOf))
+  for (const url of new Set(dropped.flatMap(imagesOf))) {
     if (!live.has(url)) URL.revokeObjectURL(url)
   }
 }
@@ -119,6 +120,8 @@ function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [status, setStatus] = useState("")
   const [imagesLoaded, setImagesLoaded] = useState(0)
+  /** Whether the selected template is open (its settings replace the grid). */
+  const [templateOpen, setTemplateOpen] = useState(false)
 
   const template = findTemplate(doc.templateId)
   const isEmptyState = doc.templateId === null
@@ -158,23 +161,22 @@ function App() {
   }, [placements, template, isEmptyState])
 
   const imageSrcForSlot = useCallback(
-    (cardSlot: number) => {
-      const count = doc.images.length
-      if (!count) return undefined
-      return doc.images[doc.imageOrder[cardSlot % count] ?? cardSlot % count]
-    },
-    [doc.images, doc.imageOrder],
+    (cardSlot: number) => doc.slotImages[cardSlot] ?? undefined,
+    [doc.slotImages],
   )
+  const layoutImages = doc.slotImages.slice(0, cardCount)
+  const filledCount = layoutImages.filter(Boolean).length
+  const emptySlots = layoutImages.flatMap((src, index) => (src ? [] : [index]))
 
   const imageElements = useMemo(() => {
     const map = new Map<string, HTMLImageElement>()
-    for (const src of doc.images) {
+    for (const src of imagesOf(doc)) {
       const image = new Image()
       image.src = src
       map.set(src, image)
     }
     return map
-  }, [doc.images])
+  }, [doc.slotImages])
 
   const placeholderImage = useMemo(() => {
     const image = new Image()
@@ -318,17 +320,21 @@ function App() {
 
   // ---- Actions ---------------------------------------------------------------
 
-  const selectTemplate = (id: string) => {
-    if (id === doc.templateId) return
-    // Card slots don't correspond between templates, so start each one clean.
-    commit((current) => ({
-      ...current,
-      templateId: id,
-      offsets: zeroOffsets(),
-      styles: defaultStyles(),
-    }))
-    setSelectedSlot(0)
-  }
+  const openTemplate = (id: string) =>
+    withViewTransition(() => {
+      setTemplateOpen(true)
+      if (id === doc.templateId) return
+      // Card slots don't correspond between templates, so start each one clean.
+      commit((current) => ({
+        ...current,
+        templateId: id,
+        offsets: zeroOffsets(),
+        styles: defaultStyles(),
+      }))
+      setSelectedSlot(0)
+    })
+
+  const closeTemplate = () => withViewTransition(() => setTemplateOpen(false))
 
   const clearTemplate = () => {
     commit((current) => ({
@@ -338,6 +344,7 @@ function App() {
       styles: defaultStyles(),
     }))
     setSelectedSlot(0)
+    setTemplateOpen(false)
     announce("Back to the empty layout. Your images are kept.")
   }
 
@@ -349,8 +356,7 @@ function App() {
       ),
     }))
 
-  const resetStyle = () =>
-updateStyle({ ...defaultCardStyle })
+  const resetStyle = () => updateStyle({ ...defaultCardStyle })
 
   const resetPosition = () =>
     commit((current) => ({
@@ -368,7 +374,7 @@ updateStyle({ ...defaultCardStyle })
     announce("All frames back in their template spots")
   }
 
-  const canReorderImages = doc.images.length > 1
+  const canReorderImages = filledCount > 1
   const canShuffle = canReorderImages || (!isEmptyState && doc.scatter > 0)
   const shuffleHint = isEmptyState
     ? "Add 2 or more images to shuffle them"
@@ -378,44 +384,70 @@ updateStyle({ ...defaultCardStyle })
     commit((current) => ({
       ...current,
       seed: Math.floor(Math.random() * 90000) + 10000,
-      imageOrder: canReorderImages
-        ? shuffled(current.images.length, current.imageOrder)
-        : current.imageOrder,
+      // Swap images between this layout's frames; empty frames move too.
+      slotImages: canReorderImages
+        ? [
+            ...shuffled(current.slotImages.slice(0, cardCount)),
+            ...current.slotImages.slice(cardCount),
+          ]
+        : current.slotImages,
     }))
 
-  const chooseFiles = () => {
+  const pickImages = (multiple: boolean, onPick: (files: File[]) => void) => {
     const input = document.createElement("input")
     input.type = "file"
     input.accept = "image/png,image/jpeg,image/webp"
-    input.multiple = true
+    input.multiple = multiple
     input.onchange = () => {
       const files = Array.from(input.files ?? [])
-      const valid = files
-        .filter((file) => file.size <= maxFileBytes)
-        .slice(0, maxCards)
+      const valid = files.filter((file) => file.size <= maxFileBytes)
       if (!valid.length) {
         announce("Choose images under 10 MB")
         return
       }
-      const urls = valid.map((file) => URL.createObjectURL(file))
-      commit((current) => ({
-        ...current,
-        images: urls,
-        imageOrder: urls.map((_, index) => index),
-      }))
-      setSelectedSlot(0)
-      const skippedLarge = files.some((file) => file.size > maxFileBytes)
-      const skippedExtra =
-        files.filter((file) => file.size <= maxFileBytes).length > maxCards
-      announce(
-        skippedLarge
-          ? "Some files were over 10 MB and were skipped"
-          : skippedExtra
-            ? `Added the first ${maxCards} images`
-            : `${urls.length} ${urls.length === 1 ? "image" : "images"} added`,
-      )
+      if (valid.length < files.length) announce("Some files were over 10 MB and were skipped")
+      onPick(valid)
     }
     input.click()
+  }
+
+  /** Fill the layout's empty frames in order, one image per frame. */
+  const addImages = () =>
+    pickImages(true, (files) => {
+      const targets = emptySlots.slice(0, files.length)
+      const urls = files.slice(0, targets.length).map((file) => URL.createObjectURL(file))
+      commit((current) => {
+        const slotImages = [...current.slotImages]
+        targets.forEach((target, index) => {
+          slotImages[target] = urls[index]
+        })
+        return { ...current, slotImages }
+      })
+      setSelectedSlot(targets[0])
+      const extra = files.length - targets.length
+      announce(
+        extra > 0
+          ? `Added ${urls.length} of ${files.length}. ${template.name} has ${cardCount} frames.`
+          : `${urls.length} ${urls.length === 1 ? "image" : "images"} added`,
+      )
+    })
+
+  const replaceImage = () =>
+    pickImages(false, ([file]) => {
+      const url = URL.createObjectURL(file)
+      commit((current) => ({
+        ...current,
+        slotImages: current.slotImages.map((src, index) => (index === slot ? url : src)),
+      }))
+      announce(`Frame ${slot + 1} image ${doc.slotImages[slot] ? "replaced" : "added"}`)
+    })
+
+  const removeImage = () => {
+    commit((current) => ({
+      ...current,
+      slotImages: current.slotImages.map((src, index) => (index === slot ? null : src)),
+    }))
+    announce(`Frame ${slot + 1} image removed`)
   }
 
   const exportImage = () => {
@@ -539,7 +571,7 @@ updateStyle({ ...defaultCardStyle })
               <Flex direction="column" gap={5}>
                 <Flex direction="column" gap={3}>
                   <Text size="100" weight="bold">
-                    FORMAT
+                    FORMAT: BLOG HEADER
                   </Text>
                   <Box color="secondary" padding={3} rounding={3}>
                     <Flex alignItems="center" gap={2}>
@@ -551,10 +583,10 @@ updateStyle({ ...defaultCardStyle })
                       />
                       <Flex direction="column">
                         <Text size="200" weight="bold">
-                          Blog header
+                          {canvas.width} × {canvas.height}
                         </Text>
                         <Text color="subtle" size="100">
-                          {canvas.width} × {canvas.height} · 16:9
+                          16:9 landscape
                         </Text>
                       </Flex>
                     </Flex>
@@ -569,14 +601,13 @@ updateStyle({ ...defaultCardStyle })
                       IMAGES
                     </Text>
                     <Text color="subtle" size="100">
-                      {doc.images.length}/{maxCards}
+                      {filledCount}/{cardCount} frames filled
                     </Text>
                   </Flex>
                   <TapArea
-                    accessibilityLabel={
-                      doc.images.length ? "Replace images" : "Upload images"
-                    }
-                    onTap={chooseFiles}
+                    accessibilityLabel="Add images to empty frames"
+                    disabled={emptySlots.length === 0}
+                    onTap={addImages}
                     rounding={4}
                     tapStyle="compress"
                   >
@@ -584,31 +615,26 @@ updateStyle({ ...defaultCardStyle })
                       <Flex alignItems="center" direction="column" gap={2}>
                         <Icon
                           accessibilityLabel=""
-                          color="subtle"
+                          color={emptySlots.length ? "subtle" : "disabled"}
                           icon="upload-feed"
                           size={iconSizes.lg}
                         />
-                        <Text align="center" size="200" weight="bold">
-                          {doc.images.length
-                            ? "Replace images"
-                            : "Add your images"}
+                        <Text
+                          align="center"
+                          color={emptySlots.length ? "default" : "disabled"}
+                          size="200"
+                          weight="bold"
+                        >
+                          {emptySlots.length ? "Add images" : "Every frame has an image"}
                         </Text>
                         <Text align="center" color="subtle" size="100">
-                          Up to {maxCards} · JPG, PNG or WebP · 10 MB max
+                          {emptySlots.length
+                            ? `Fills the next ${emptySlots.length === 1 ? "empty frame" : `${emptySlots.length} empty frames`} · JPG, PNG or WebP · 10 MB max`
+                            : "Select a frame to replace or remove its image"}
                         </Text>
                       </Flex>
                     </Box>
                   </TapArea>
-                  {doc.images.length > 0 && doc.images.length < cardCount ? (
-                    <Text color="subtle" size="100">
-                      {template.name} has {cardCount} frames, so your{" "}
-                      {doc.images.length}{" "}
-                      {doc.images.length === 1
-                        ? "image repeats"
-                        : "images repeat"}
-                      .
-                    </Text>
-                  ) : null}
                 </Flex>
 
                 <Divider />
@@ -628,14 +654,10 @@ updateStyle({ ...defaultCardStyle })
                       />
                     ) : null}
                   </Flex>
-                  <TemplatePicker
-                    onSelect={selectTemplate}
-                    selectedId={doc.templateId}
-                    templates={templates}
-                  />
-                  {!isEmptyState ? (
+                  {templateOpen && !isEmptyState ? (
                     <TemplateSettings
                       anyMoved={anyMoved}
+                      onBack={closeTemplate}
                       canShuffle={canShuffle}
                       onCopyRecipe={copyRecipe}
                       onResetAllPositions={resetAllPositions}
@@ -645,12 +667,21 @@ updateStyle({ ...defaultCardStyle })
                       onShuffle={shuffle}
                       scatter={doc.scatter}
                       shuffleHint={shuffleHint}
-                      templateName={template.name}
+                      template={template}
                     />
                   ) : (
-                    <Text color="subtle" size="100">
-                      Pick a template to open its settings.
-                    </Text>
+                    <>
+                      <TemplatePicker
+                        onSelect={openTemplate}
+                        selectedId={doc.templateId}
+                        templates={templates}
+                      />
+                      <Text color="subtle" size="100">
+                        {isEmptyState
+                          ? "Pick a template to open its settings."
+                          : `Select ${template.name} to open its settings again.`}
+                      </Text>
+                    </>
                   )}
                 </Flex>
               </Flex>
@@ -732,6 +763,23 @@ updateStyle({ ...defaultCardStyle })
                     selected={slot}
                     warningSlots={violatingSlots}
                   />
+                  <Flex gap={2} wrap>
+                    <Button
+                      iconStart={doc.slotImages[slot] ? "refresh" : "add"}
+                      onClick={replaceImage}
+                      size="sm"
+                      text={`${doc.slotImages[slot] ? "Replace" : "Add"} image for frame ${slot + 1}`}
+                    />
+                    {doc.slotImages[slot] ? (
+                      <IconButton
+                        accessibilityLabel={`Remove image from frame ${slot + 1}`}
+                        icon="trash-can"
+                        onClick={removeImage}
+                        size="sm"
+                        tooltip={{ text: "Remove image" }}
+                      />
+                    ) : null}
+                  </Flex>
                 </Flex>
                 <Divider />
                 <StylePanel

@@ -126,3 +126,30 @@ body {
 .artboard-draggable:active {
   cursor: grabbing;
 }
+
+/*
+ * Opening a template: its tile grows into the settings panel (View
+ * Transitions), then the settings rise in. Gestalt has no motion tokens, so
+ * these durations are flagged in BACKLOG.md.
+ */
+::view-transition-group(*) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.template-settings-body {
+  animation: template-settings-in 280ms cubic-bezier(0.2, 0, 0, 1) 80ms both;
+}
+
+@keyframes template-settings-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-200));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .template-settings-body {
+    animation: none;
+  }
+}

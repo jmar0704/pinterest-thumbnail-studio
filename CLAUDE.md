@@ -1,6 +1,6 @@
 # Thumbnail Studio
 
-Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails from up to six images placed in Pinterest-style rounded cards. Users pick a template (Arc, Stack, Spread, Grid), drag cards within the margins, style each card with stepped controls, and export a PNG.
+Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails by placing one image per Pinterest-style rounded card (up to six). Users pick a template (Arc, Stack, Spread, Grid), drag cards within the margins, style each card with stepped controls, and export a PNG.
 
 The value of the tool is its templates. Layouts are designed by hand in Figma and must render exactly as designed.
 
@@ -63,7 +63,8 @@ The source of truth is `src/data/templates.json`. It was extracted from Figma fi
 - `src/lib/drawComposition.ts`: canvas rendering; the overlay (guides, selection) is preview-only.
 - `src/hooks/useHistory.ts`: undo/redo snapshots.
 - `src/theme/artworkPalette.ts`: color templates (background + paired drop-shadow glow) and other artwork colors.
-- `src/components/`: TemplatePicker, TemplateSettings, FrameChips, StylePanel, StepControl, ColorTemplatePicker.
+- `src/lib/viewTransition.ts`: View Transition helper for opening a template.
+- `src/components/`: TemplatePicker, LayoutThumbnail, TemplateSettings (the opened template), FrameChips, StylePanel, StepControl, ColorTemplatePicker.
 
 ## Code conventions
 

@@ -4,7 +4,7 @@ Work from top to bottom, one item per task. Items marked **Decision needed** req
 
 ## Decisions (2026-10-07)
 
-- **Images:** up to the largest template's card count (6). When there are fewer images than cards, they repeat in order.
+- **Images (updated 2026-10-08):** one image per frame, never repeated. "Add images" fills the layout's empty frames in order; empty frames show the placeholder. The selected frame has Replace/Add image and Remove buttons under the frame chips. Images stay with their slot across template switches. Shuffle swaps images between the layout's frames.
 - **Style scope:** style controls apply to the selected card only. Switching templates (or going back to the Empty State) resets styles and positions, because card slots don't correspond between templates. Undo restores them.
 - **Stepped controls, not free sliders:** non-designers shouldn't be able to push a card to an extreme. Per-card controls are Gestalt `SegmentedControl`s: Size (S 0.9× · M 1.0× · L 1.1× · XL 1.2×), Rotate (−10° to +10° in 5° steps, added to the template's rotation), 3D tilt (Off · Subtle · Strong), Border (None · 4 · 8 · 12 px), Shadow (None · Soft · Mid · Strong), plus Shadow color when a shadow is on. Steps live in `src/data/styleOptions.ts`.
 - **Scatter** replaced the per-card Offset, Rotation-jitter and Depth sliders. It is one composition-wide control (Off · Subtle · Playful) with seeded per-card randomness.
@@ -14,7 +14,9 @@ Work from top to bottom, one item per task. Items marked **Decision needed** req
 - **Save status:** the fake "Saving…" status is gone. The header shows only real events (upload, export, copy, reset) for a few seconds.
 - **"Frame N" header button:** removed. The frame chips in the Style panel replace it.
 - **Header:** no Pinterest logo; just the "Thumbnail Studio" title.
-- **Template settings:** picking a template opens a settings card under the template grid with Scatter, Shuffle, Reset all positions and Copy recipe. The toolbar above the canvas is gone.
+- **Template settings (updated 2026-10-08):** picking a template opens it like a folder. The tile grows into a panel that replaces the grid (View Transitions API, instant when unsupported or with reduced motion), holding Scatter, Shuffle, Reset all positions and Copy recipe. A back arrow returns to the grid. Settings stay in view however many templates there are.
+- **3D tilt:** both directions: L 30° · L 15° · Off · R 15° · R 30°.
+- **Format section:** labeled "FORMAT: BLOG HEADER"; the card shows "1600 × 900".
 - **Color templates (background + drop shadow):** background and shadow color are chosen together, following the colored-shadow pairs spec. There are 19 options: White (with the neutral gray-roboflow-800 glow, the default) plus 9 hue ramps in two directions. Light means a `-50` background with a `-800` glow and 11px spread; deep means a `-800` background with a `-50` glow and 16px spread. Every glow is 25% opacity, 50px blur, no offset. The picker sits below the canvas.
 - **Drop shadow** (renamed from Shadow) is a per-card Off/On control. The glow is drawn by blurring a copy of the card enlarged by the spread, because canvas shadows have no spread. The old shadow strength steps and per-card shadow color are gone.
 
@@ -44,9 +46,12 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - `opacity={0.5}` on the disabled Style panel and Scatter control. The opacity scale is 0.04 / 0.2 / 0.4 / 0.8 / 0.9.
 - Layout breakpoint `1100px` and the stacked stage height `70vh` in `index.css`.
 - Canvas-space drawing values (margin guide dash 16/12, guide and outline widths 3 and 6). These are artwork-scale numbers, not UI spacing.
+- Motion: Gestalt has no duration or easing tokens, so the template-open transition uses 280ms with `cubic-bezier(0.2, 0, 0, 1)` (in `index.css`).
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
 ## Next
+
+- True perspective for 3D tilt. Today it's an affine approximation (horizontal squeeze plus vertical shear), so neither edge gets taller. Real perspective would draw the card in vertical strips, and would need matching changes to the glow, extents and hit testing.
 
 - Arrow-key nudging for the selected card (dragging is pointer-only).
 - Replace a single frame's image instead of re-uploading all of them.

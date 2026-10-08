@@ -87,8 +87,6 @@ export function computePlacements({
         rotateSteps[style.rotate].value +
         spread() * jitter.rotate
       const scale = sizeSteps[style.size].value * (1 + spread() * jitter.size)
-      // Cards turn toward the canvas center, so a tilted layout reads as a set.
-      const towardCenter = templateCard.cx <= canvas.width / 2 ? 1 : -1
       const offset = offsets[slot]
       return {
         slot,
@@ -99,7 +97,7 @@ export function computePlacements({
         cy: baseY + offset.y,
         rotate,
         scale,
-        tilt: tiltSteps[style.tilt].value * towardCenter,
+        tilt: tiltSteps[style.tilt].value,
         style,
       }
     })
