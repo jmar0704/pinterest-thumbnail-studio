@@ -63,7 +63,7 @@ The source of truth is `src/data/templates.json`. It was first extracted from Fi
 - `src/lib/drawComposition.ts`: canvas rendering; the overlay (guides, selection) is preview-only.
 - `src/hooks/useHistory.ts`: undo/redo snapshots.
 - `src/theme/artworkPalette.ts`: color templates (background + paired drop-shadow glow) and other artwork colors.
-- `src/lib/viewTransition.ts`: View Transition helper for opening a template.
+- `src/lib/viewTransition.ts`: View Transition helper for opening a template. The update always runs, even when the browser skips the transition (for example, when the page is hidden).
 - `src/components/`: TemplatePicker, LayoutThumbnail, TemplateSettings (the opened template), FrameChips (tap to select, drag to swap images), StylePanel, StepControl, ColorTemplatePicker, DropShadowSwitch.
 
 ## Code conventions

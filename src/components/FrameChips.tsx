@@ -22,6 +22,10 @@ function ChipFace({ src }: { src: string | undefined }) {
  * One chip per card in the current layout, showing that card's image.
  * Tap to select a frame. Drag a chip onto another (or press Alt+←/→) to swap
  * their images.
+ *
+ * Images that don't fit the layout (e.g. a 4th image in a 3-frame template)
+ * follow as greyed "spare" chips. Drag one onto a frame, or tap it to put it
+ * in the selected frame.
  */
 export default function FrameChips({
   count,
@@ -30,6 +34,7 @@ export default function FrameChips({
   warningSlots,
   onSelect,
   onSwap,
+  spareSlots,
 }: {
   count: number
   selected: number
@@ -37,6 +42,7 @@ export default function FrameChips({
   warningSlots: Set<number>
   onSelect: (slot: number) => void
   onSwap: (from: number, to: number) => void
+  spareSlots: number[]
 }) {
   const dragRef = useRef<Drag | null>(null)
   const suppressTapRef = useRef(false)
@@ -91,9 +97,10 @@ export default function FrameChips({
   return (
     <>
       <Flex gap={2} wrap>
-        {Array.from({ length: count }, (_, slot) => {
+        {[...Array.from({ length: count }, (_, slot) => slot), ...spareSlots].map((slot) => {
+          const isSpare = slot >= count
           const src = imageForSlot(slot)
-          const isSelected = slot === selected
+          const isSelected = !isSpare && slot === selected
           const hasWarning = warningSlots.has(slot)
           const isSource = dragging?.from === slot
           const isTarget = dragging !== null && dragging.over === slot && !isSource
@@ -106,7 +113,7 @@ export default function FrameChips({
                 if (!event.altKey) return
                 const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0
                 const to = slot + step
-                if (step && to >= 0 && to < count) {
+                if (!isSpare && step && to >= 0 && to < count) {
                   event.preventDefault()
                   onSwap(slot, to)
                 }
@@ -117,9 +124,15 @@ export default function FrameChips({
               onPointerUp={(event) => finishDrag(event, true)}
             >
               <TapArea
-                accessibilityLabel={`Frame ${slot + 1}${isSelected ? ", selected" : ""}${hasWarning ? ", crosses the margin" : ""}. Drag, or press Alt plus arrow keys, to swap images.`}
+                accessibilityLabel={
+                  isSpare
+                    ? `Spare image, not in this layout. Select to use it in frame ${selected + 1}, or drag it onto a frame.`
+                    : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${hasWarning ? ", crosses the margin" : ""}. Drag, or press Alt plus arrow keys, to swap images.`
+                }
                 onTap={() => {
-                  if (!suppressTapRef.current) onSelect(slot)
+                  if (suppressTapRef.current) return
+                  if (isSpare) onSwap(slot, selected)
+                  else onSelect(slot)
                 }}
                 role="button"
                 rounding={3}
@@ -133,7 +146,7 @@ export default function FrameChips({
                     display="flex"
                     height={sizes.frameChip}
                     justifyContent="center"
-                    opacity={isSource ? 0.4 : 1}
+                    opacity={isSource || isSpare ? 0.4 : 1}
                     overflow="hidden"
                     rounding={3}
                     width={sizes.frameChip}
@@ -154,7 +167,7 @@ export default function FrameChips({
                       size="100"
                       weight={isSelected ? "bold" : "normal"}
                     >
-                      {slot + 1}
+                      {isSpare ? "Spare" : slot + 1}
                     </Text>
                   </Flex>
                 </Flex>
@@ -163,6 +176,12 @@ export default function FrameChips({
           )
         })}
       </Flex>
+      {spareSlots.length ? (
+        <Text color="subtle" size="100">
+          {spareSlots.length === 1 ? "1 image doesn't" : `${spareSlots.length} images don't`} fit
+          this layout. Drag a spare onto a frame, or select it to use it in frame {selected + 1}.
+        </Text>
+      ) : null}
 
       {/* The chip being dragged follows the pointer. */}
       {dragging && ghost ? (

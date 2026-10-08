@@ -3,7 +3,6 @@ import StepControl from "@/components/StepControl"
 import {
   borderSteps,
   defaultCardStyle,
-  isDefaultStyle,
   rotateSteps,
   sizeSteps,
   tiltSteps,
@@ -26,18 +25,22 @@ export default function StylePanel({
   enabled,
   slot,
   style,
-  isMoved,
+  isFrameChanged,
+  canResetAll,
   onChange,
-  onResetStyle,
-  onResetPosition,
+  onResetFrame,
+  onResetAll,
 }: {
   enabled: boolean
   slot: number
   style: CardStyle
-  isMoved: boolean
+  /** The selected frame was moved or styled. */
+  isFrameChanged: boolean
+  /** Anything differs from the template's original design. */
+  canResetAll: boolean
   onChange: (update: Partial<CardStyle>) => void
-  onResetStyle: () => void
-  onResetPosition: () => void
+  onResetFrame: () => void
+  onResetAll: () => void
 }) {
   return (
     <Flex direction="column" gap={4}>
@@ -62,18 +65,18 @@ export default function StylePanel({
       ) : (
         <Flex gap={2} wrap>
           <Button
-            disabled={!isMoved}
+            disabled={!isFrameChanged}
             iconStart="move-pin"
-            onClick={onResetPosition}
+            onClick={onResetFrame}
             size="sm"
-            text="Reset position"
+            text="Reset frame"
           />
           <Button
-            disabled={isDefaultStyle(style)}
+            disabled={!canResetAll}
             iconStart="refresh"
-            onClick={onResetStyle}
+            onClick={onResetAll}
             size="sm"
-            text="Reset style"
+            text="Reset all"
           />
         </Flex>
       )}

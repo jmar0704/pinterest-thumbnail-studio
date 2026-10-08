@@ -24,6 +24,7 @@ import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
 import {
   defaultCardStyle,
   defaultScatter,
+  isDefaultStyle,
   scatterSteps,
   type CardStyle,
 } from "@/data/styleOptions"
@@ -87,6 +88,12 @@ function shuffled<T>(items: T[]) {
     }
   } while (order.every((value, index) => value === items[index]))
   return order
+}
+
+/** The smallest template with room for `count` images (the largest if none). */
+function templateFor(count: number) {
+  const bySize = [...templates].sort((a, b) => a.cards.length - b.cards.length)
+  return bySize.find((item) => item.cards.length >= count) ?? bySize[bySize.length - 1]
 }
 
 const imagesOf = (doc: Doc) => doc.slotImages.filter((src): src is string => src !== null)
@@ -168,6 +175,11 @@ function App() {
   const layoutImages = doc.slotImages.slice(0, cardCount)
   const filledCount = layoutImages.filter(Boolean).length
   const emptySlots = layoutImages.flatMap((src, index) => (src ? [] : [index]))
+  /** Slots past this layout's frames that still hold an image. */
+  const spareSlots = doc.slotImages.flatMap((src, index) =>
+    src && index >= cardCount ? [index] : [],
+  )
+  const totalImages = filledCount + spareSlots.length
 
   const imageElements = useMemo(() => {
     const map = new Map<string, HTMLImageElement>()
@@ -357,18 +369,37 @@ function App() {
       ),
     }))
 
-  const resetStyle = () => updateStyle({ ...defaultCardStyle })
-
-  const resetPosition = () =>
+  /** The selected frame back to its template spot and default style. */
+  const resetFrame = () =>
     commit((current) => ({
       ...current,
-      offsets: current.offsets.map((offset, index) =>
-        index === slot ? { x: 0, y: 0 } : offset,
+      offsets: current.offsets.map((offset, index) => (index === slot ? { x: 0, y: 0 } : offset)),
+      styles: current.styles.map((style, index) =>
+        index === slot ? { ...defaultCardStyle } : style,
       ),
     }))
 
+  /** Every frame, style, Scatter and the background back to the template as designed. */
+  const resetAll = () => {
+    commit((current) => ({
+      ...current,
+      offsets: zeroOffsets(),
+      styles: defaultStyles(),
+      scatter: defaultScatter,
+      colors: whiteColorTemplate.id,
+    }))
+    announce(`${template.name} is back to its original design`)
+  }
+
   const isMoved = (offset: Offset) => offset.x !== 0 || offset.y !== 0
   const anyMoved = doc.offsets.slice(0, cardCount).some(isMoved)
+  const isFrameChanged =
+    isMoved(doc.offsets[slot]) || !isDefaultStyle(doc.styles[slot])
+  const canResetAll =
+    anyMoved ||
+    doc.styles.slice(0, cardCount).some((style) => !isDefaultStyle(style)) ||
+    doc.scatter !== defaultScatter ||
+    doc.colors !== whiteColorTemplate.id
 
   const resetAllPositions = () => {
     commit((current) => ({ ...current, offsets: zeroOffsets() }))
@@ -412,24 +443,65 @@ function App() {
     input.click()
   }
 
-  /** Fill the layout's empty frames in order, one image per frame. */
+  /**
+   * Fill empty frames in order, one image per frame. If the images don't fit
+   * the current layout, switch to the smallest template that holds them all.
+   */
   const addImages = () =>
     pickImages(true, (files) => {
-      const targets = emptySlots.slice(0, files.length)
-      const urls = files.slice(0, targets.length).map((file) => URL.createObjectURL(file))
-      commit((current) => {
-        const slotImages = [...current.slotImages]
-        targets.forEach((target, index) => {
-          slotImages[target] = urls[index]
+      const room = maxCards - totalImages
+      const accepted = files.slice(0, room)
+      if (!accepted.length) {
+        announce(`You can use up to ${maxCards} images`)
+        return
+      }
+      const urls = accepted.map((file) => URL.createObjectURL(file))
+      const total = totalImages + urls.length
+      const target = total > cardCount ? templateFor(total) : null
+
+      const apply = () => {
+        commit((current) => {
+          const count = target ? target.cards.length : cardCount
+          const slotImages = [...current.slotImages]
+          // When switching to fit, pull spare images into view too.
+          const incoming = target
+            ? [
+                ...slotImages.slice(count).filter((src): src is string => src !== null),
+                ...urls,
+              ]
+            : urls
+          if (target) for (let index = count; index < maxCards; index += 1) slotImages[index] = null
+          let next = 0
+          for (let index = 0; index < count && next < incoming.length; index += 1) {
+            if (!slotImages[index]) slotImages[index] = incoming[next++]
+          }
+          return target
+            ? {
+                ...current,
+                templateId: target.id,
+                offsets: zeroOffsets(),
+                styles: defaultStyles(),
+                slotImages,
+              }
+            : { ...current, slotImages }
         })
-        return { ...current, slotImages }
-      })
-      setSelectedSlot(targets[0])
-      const extra = files.length - targets.length
+        if (target) setTemplateOpen(true)
+        setSelectedSlot(target ? 0 : (emptySlots[0] ?? 0))
+      }
+      if (target) withViewTransition(apply)
+      else apply()
+
+      const skipped = files.length - accepted.length
       announce(
-        extra > 0
-          ? `Added ${urls.length} of ${files.length}. ${template.name} has ${cardCount} frames.`
-          : `${urls.length} ${urls.length === 1 ? "image" : "images"} added`,
+        [
+          `${urls.length} ${urls.length === 1 ? "image" : "images"} added`,
+          target && target.id !== doc.templateId
+            ? `switched to ${target.name} to fit ${total}`
+            : "",
+          skipped > 0 ? `${skipped} skipped (${maxCards} max)` : "",
+        ]
+          .filter(Boolean)
+          .join(", "),
       )
     })
 
@@ -449,8 +521,14 @@ function App() {
       ;[slotImages[from], slotImages[to]] = [slotImages[to], slotImages[from]]
       return { ...current, slotImages }
     })
-    setSelectedSlot(to)
-    announce(`Swapped frames ${from + 1} and ${to + 1}`)
+    const visible = to < cardCount ? to : from
+    setSelectedSlot(visible)
+    const spare = from >= cardCount || to >= cardCount
+    announce(
+      spare
+        ? `Moved a spare image into frame ${visible + 1}`
+        : `Swapped frames ${from + 1} and ${to + 1}`,
+    )
   }
 
   const removeImage = () => {
@@ -600,11 +678,12 @@ function App() {
                     </Text>
                     <Text color="subtle" size="100">
                       {filledCount}/{cardCount} frames filled
+                      {spareSlots.length ? ` · ${spareSlots.length} spare` : ""}
                     </Text>
                   </Flex>
                   <TapArea
                     accessibilityLabel="Add images to empty frames"
-                    disabled={emptySlots.length === 0}
+                    disabled={totalImages >= maxCards}
                     onTap={addImages}
                     rounding={4}
                     tapStyle="compress"
@@ -613,21 +692,23 @@ function App() {
                       <Flex alignItems="center" direction="column" gap={2}>
                         <Icon
                           accessibilityLabel=""
-                          color={emptySlots.length ? "subtle" : "disabled"}
+                          color={totalImages < maxCards ? "subtle" : "disabled"}
                           icon="upload-feed"
                           size={iconSizes.lg}
                         />
                         <Text
                           align="center"
-                          color={emptySlots.length ? "default" : "disabled"}
+                          color={totalImages < maxCards ? "default" : "disabled"}
                           size="200"
                           weight="bold"
                         >
-                          {emptySlots.length ? "Add images" : "Every frame has an image"}
+                          {totalImages < maxCards ? "Add images" : `All ${maxCards} images added`}
                         </Text>
                         <Text align="center" color="subtle" size="100">
-                          {emptySlots.length
-                            ? `Fills the next ${emptySlots.length === 1 ? "empty frame" : `${emptySlots.length} empty frames`} · JPG, PNG or WebP · 10 MB max`
+                          {totalImages < maxCards
+                            ? emptySlots.length
+                              ? `Fills empty frames in order · up to ${maxCards} · JPG, PNG or WebP · 10 MB max`
+                              : "Switches to a template with room for more · JPG, PNG or WebP"
                             : "Select a frame to replace or remove its image"}
                         </Text>
                       </Flex>
@@ -768,6 +849,7 @@ function App() {
                     imageForSlot={imageSrcForSlot}
                     onSelect={setSelectedSlot}
                     onSwap={swapImages}
+                    spareSlots={spareSlots}
                     selected={slot}
                     warningSlots={violatingSlots}
                   />
@@ -792,10 +874,11 @@ function App() {
                 <Divider />
                 <StylePanel
                   enabled={!isEmptyState}
-                  isMoved={isMoved(doc.offsets[slot])}
+                  canResetAll={canResetAll}
+                  isFrameChanged={isFrameChanged}
                   onChange={updateStyle}
-                  onResetPosition={resetPosition}
-                  onResetStyle={resetStyle}
+                  onResetAll={resetAll}
+                  onResetFrame={resetFrame}
                   slot={slot}
                   style={doc.styles[slot]}
                 />
