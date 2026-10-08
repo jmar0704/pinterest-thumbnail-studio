@@ -24,8 +24,7 @@ function ChipFace({ src }: { src: string | undefined }) {
  * their images.
  *
  * Images that don't fit the layout (e.g. a 4th image in a 3-frame template)
- * follow as greyed "spare" chips. Drag one onto a frame, or tap it to put it
- * in the selected frame.
+ * follow as greyed "spare" chips. Drag one onto a frame to use it there.
  */
 export default function FrameChips({
   count,
@@ -37,7 +36,7 @@ export default function FrameChips({
   spareSlots,
 }: {
   count: number
-  selected: number
+  selected: number | null
   imageForSlot: (slot: number) => string | undefined
   warningSlots: Set<number>
   onSelect: (slot: number) => void
@@ -126,13 +125,13 @@ export default function FrameChips({
               <TapArea
                 accessibilityLabel={
                   isSpare
-                    ? `Spare image, not in this layout. Select to use it in frame ${selected + 1}, or drag it onto a frame.`
+                    ? "Spare image, not in this layout. Drag it onto a frame to use it."
                     : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${hasWarning ? ", crosses the margin" : ""}. Drag, or press Alt plus arrow keys, to swap images.`
                 }
                 onTap={() => {
-                  if (suppressTapRef.current) return
-                  if (isSpare) onSwap(slot, selected)
-                  else onSelect(slot)
+                  // Spares only move by dragging; tapping them does nothing.
+                  if (suppressTapRef.current || isSpare) return
+                  onSelect(slot)
                 }}
                 role="button"
                 rounding={3}
@@ -179,7 +178,7 @@ export default function FrameChips({
       {spareSlots.length ? (
         <Text color="subtle" size="100">
           {spareSlots.length === 1 ? "1 image doesn't" : `${spareSlots.length} images don't`} fit
-          this layout. Drag a spare onto a frame, or select it to use it in frame {selected + 1}.
+          this layout. Drag a spare onto a frame to use it.
         </Text>
       ) : null}
 

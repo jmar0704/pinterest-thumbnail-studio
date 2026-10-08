@@ -124,7 +124,8 @@ function App() {
     canUndo,
     canRedo,
   } = useHistory<Doc>(initialDoc, revokeUnused)
-  const [selectedSlot, setSelectedSlot] = useState(0)
+  /** The frame being edited, or null when none is selected. */
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [status, setStatus] = useState("")
   const [imagesLoaded, setImagesLoaded] = useState(0)
@@ -134,7 +135,9 @@ function App() {
   const template = findTemplate(doc.templateId)
   const isEmptyState = doc.templateId === null
   const cardCount = template.cards.length
-  const slot = Math.min(selectedSlot, cardCount - 1)
+  const slot = selectedSlot === null ? null : Math.min(selectedSlot, cardCount - 1)
+  /** Slot to read values from while nothing is selected (controls are disabled then). */
+  const activeSlot = slot ?? 0
 
   const announce = useCallback((message: string) => setStatus(message), [])
   useEffect(() => {
@@ -147,17 +150,16 @@ function App() {
     () =>
       computePlacements({
         template,
-        isEmptyState,
         styles: doc.styles,
         offsets: doc.offsets,
-        scatter: doc.scatter,
+        // Scatter belongs to a template's settings; the Empty State sits as designed.
+        scatter: isEmptyState ? 0 : doc.scatter,
         seed: doc.seed,
       }),
     [template, isEmptyState, doc.styles, doc.offsets, doc.scatter, doc.seed],
   )
 
   const violatingSlots = useMemo(() => {
-    if (isEmptyState) return new Set<number>()
     return new Set(
       placements
         .filter(
@@ -166,7 +168,7 @@ function App() {
         )
         .map((placement) => placement.slot),
     )
-  }, [placements, template, isEmptyState])
+  }, [placements, template])
 
   const imageSrcForSlot = useCallback(
     (cardSlot: number) => doc.slotImages[cardSlot] ?? undefined,
@@ -221,7 +223,7 @@ function App() {
       },
       placeholder: placeholderImage,
       overlay: {
-        selectedSlot: isEmptyState ? null : slot,
+        selectedSlot: slot,
         violatingSlots,
         showMarginGuide: isDragging,
         colors: {
@@ -237,7 +239,6 @@ function App() {
     imageSrcForSlot,
     imageElements,
     placeholderImage,
-    isEmptyState,
     slot,
     violatingSlots,
     isDragging,
@@ -280,10 +281,11 @@ function App() {
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const point = toCanvasPoint(event)
     const hit = hitTest(placements, point.x, point.y)
-    if (!hit) return
+    if (!hit) {
+      setSelectedSlot(null)
+      return
+    }
     setSelectedSlot(hit.slot)
-    // The Empty State is a fixed preview; cards move only within a template.
-    if (isEmptyState) return
     dragRef.current = {
       slot: hit.slot,
       pointerX: event.clientX,
@@ -356,12 +358,13 @@ function App() {
       offsets: zeroOffsets(),
       styles: defaultStyles(),
     }))
-    setSelectedSlot(0)
+    setSelectedSlot(null)
     setTemplateOpen(false)
     announce("Back to the empty layout. Your images are kept.")
   }
 
   const updateStyle = (update: Partial<CardStyle>) =>
+    slot !== null &&
     commit((current) => ({
       ...current,
       styles: current.styles.map((style, index) =>
@@ -371,6 +374,7 @@ function App() {
 
   /** The selected frame back to its template spot and default style. */
   const resetFrame = () =>
+    slot !== null &&
     commit((current) => ({
       ...current,
       offsets: current.offsets.map((offset, index) => (index === slot ? { x: 0, y: 0 } : offset)),
@@ -394,7 +398,7 @@ function App() {
   const isMoved = (offset: Offset) => offset.x !== 0 || offset.y !== 0
   const anyMoved = doc.offsets.slice(0, cardCount).some(isMoved)
   const isFrameChanged =
-    isMoved(doc.offsets[slot]) || !isDefaultStyle(doc.styles[slot])
+    slot !== null && (isMoved(doc.offsets[slot]) || !isDefaultStyle(doc.styles[slot]))
   const canResetAll =
     anyMoved ||
     doc.styles.slice(0, cardCount).some((style) => !isDefaultStyle(style)) ||
@@ -506,6 +510,7 @@ function App() {
     })
 
   const replaceImage = () =>
+    slot !== null &&
     pickImages(false, ([file]) => {
       const url = URL.createObjectURL(file)
       commit((current) => ({
@@ -532,6 +537,7 @@ function App() {
   }
 
   const removeImage = () => {
+    if (slot === null) return
     commit((current) => ({
       ...current,
       slotImages: current.slotImages.map((src, index) => (index === slot ? null : src)),
@@ -662,25 +668,14 @@ function App() {
                   <Text size="100" weight="bold">
                     FORMAT: BLOG HEADER
                   </Text>
-                  <Box color="secondary" padding={3} rounding={3}>
-                    <Text size="300">
-                      {canvas.width} × {canvas.height}
-                    </Text>
-                  </Box>
+                  <Text size="300">
+                    {canvas.width} × {canvas.height}
+                  </Text>
                 </Flex>
 
                 <Divider />
 
                 <Flex direction="column" gap={3}>
-                  <Flex alignItems="center" justifyContent="between">
-                    <Text size="100" weight="bold">
-                      IMAGES
-                    </Text>
-                    <Text color="subtle" size="100">
-                      {filledCount}/{cardCount} frames filled
-                      {spareSlots.length ? ` · ${spareSlots.length} spare` : ""}
-                    </Text>
-                  </Flex>
                   <TapArea
                     accessibilityLabel="Add images to empty frames"
                     disabled={totalImages >= maxCards}
@@ -705,11 +700,7 @@ function App() {
                           {totalImages < maxCards ? "Add images" : `All ${maxCards} images added`}
                         </Text>
                         <Text align="center" color="subtle" size="100">
-                          {totalImages < maxCards
-                            ? emptySlots.length
-                              ? `Fills empty frames in order · up to ${maxCards} · JPG, PNG or WebP · 10 MB max`
-                              : "Switches to a template with room for more · JPG, PNG or WebP"
-                            : "Select a frame to replace or remove its image"}
+                          JPG or PNG or WebP • Max {maxCards} Images • 10MB Max Per Image
                         </Text>
                       </Flex>
                     </Box>
@@ -783,11 +774,7 @@ function App() {
                   <div className="artboard-frame">
                     <canvas
                       aria-label={`Preview of the ${template.name} thumbnail. Drag a frame to move it.`}
-                      className={
-                        isEmptyState
-                          ? "artboard"
-                          : "artboard artboard-draggable"
-                      }
+                      className="artboard artboard-draggable"
                       onPointerCancel={handlePointerUp}
                       onPointerDown={handlePointerDown}
                       onPointerMove={handlePointerMove}
@@ -811,10 +798,9 @@ function App() {
                         />
                       <Divider />
                       <DropShadowSwitch
-                        enabled={!isEmptyState}
                         onChange={(on) => updateStyle({ dropShadow: on ? 1 : 0 })}
                         slot={slot}
-                        switched={doc.styles[slot].dropShadow === 1}
+                        switched={doc.styles[activeSlot].dropShadow === 1}
                       />
                     </Flex>
                   </Box>
@@ -853,34 +839,36 @@ function App() {
                     selected={slot}
                     warningSlots={violatingSlots}
                   />
-                  <Flex gap={2} wrap>
-                    <Button
-                      iconStart={doc.slotImages[slot] ? "refresh" : "add"}
-                      onClick={replaceImage}
-                      size="sm"
-                      text={`${doc.slotImages[slot] ? "Replace" : "Add"} image for frame ${slot + 1}`}
-                    />
-                    {doc.slotImages[slot] ? (
-                      <IconButton
-                        accessibilityLabel={`Remove image from frame ${slot + 1}`}
-                        icon="trash-can"
-                        onClick={removeImage}
+                  {slot !== null ? (
+                    <Flex gap={2} wrap>
+                      <Button
+                        iconStart={doc.slotImages[slot] ? "refresh" : "add"}
+                        onClick={replaceImage}
                         size="sm"
-                        tooltip={{ text: "Remove image" }}
+                        text={`${doc.slotImages[slot] ? "Replace" : "Add"} image for frame ${slot + 1}`}
                       />
-                    ) : null}
-                  </Flex>
+                      {doc.slotImages[slot] ? (
+                        <IconButton
+                          accessibilityLabel={`Remove image from frame ${slot + 1}`}
+                          icon="trash-can"
+                          onClick={removeImage}
+                          size="sm"
+                          tooltip={{ text: "Remove image" }}
+                        />
+                      ) : null}
+                    </Flex>
+                  ) : null}
                 </Flex>
                 <Divider />
                 <StylePanel
-                  enabled={!isEmptyState}
+                  enabled={slot !== null}
                   canResetAll={canResetAll}
                   isFrameChanged={isFrameChanged}
                   onChange={updateStyle}
                   onResetAll={resetAll}
                   onResetFrame={resetFrame}
-                  slot={slot}
-                  style={doc.styles[slot]}
+                  slot={activeSlot}
+                  style={doc.styles[activeSlot]}
                 />
               </Flex>
             </Box>

@@ -22,6 +22,11 @@ Work from top to bottom, one item per task. Items marked **Decision needed** req
 - **Reordering images:** drag a frame chip onto another to swap their images (Alt+←/→ from the keyboard). Styles and positions stay with the frame.
 - **More images than frames (2026-10-08):** adding images that don't fit the current layout (including the Empty State's 3) switches to the smallest template that holds them all: 4–5 images load Spread, 6–10 load Grid. That template opens, and any spare images are pulled into view. In a layout with fewer frames than images, the extras appear after the frame chips as greyed "Spare" chips. Drag one onto a frame, or tap it to put it in the selected frame (the frame's image becomes the spare). Up to 10 images in total.
 - **Reset buttons:** "Reset frame" returns the selected frame to its template spot and default style. "Reset all" returns every frame's position and style, Scatter, and the background (White) to the template as designed; images and the template stay. Both are undoable.
+- **Selection and the Empty State (2026-10-08):** no frame is selected at first. Clicking a frame (canvas or chip) selects it, and clicking empty canvas clears the selection. With nothing selected, the Style panel says "Select a frame to style it" and the per-frame image buttons hide. The Empty State's frames can be selected, dragged (within the 48px margin) and styled; Scatter still only applies to templates.
+- **Drop shadow hint:** with no frame selected, pressing the Drop shadow switch opens a Gestalt Popover above it reading "Select a frame to activate drop shadow" (info icon, no button). It closes on outside click or Escape.
+- **Spare chips are drag-only:** tapping a spare does nothing; drag it onto a frame to use it.
+- **Left panel copy:** the IMAGES heading and the "frames filled · spare" count are gone. Under Add images: "JPG or PNG or WebP • Max 10 Images • 10MB Max Per Image". The format size is plain text with no pill.
+- **Template tiles:** each illustration is inset 4px inside its white rounded card, so Grid (whose cards cover the whole canvas) shows the white background too.
 - **Drop shadow placement:** the switch sits under the Background colors (the container below the canvas, now titled "Background") and applies to the selected frame.
 - **Color templates (background + drop shadow):** background and shadow color are chosen together, following the colored-shadow pairs spec. There are 19 options: White (with the neutral gray-roboflow-800 glow, the default) plus 9 hue ramps in two directions. Light means a `-50` background with a `-800` glow and 11px spread; deep means a `-800` background with a `-50` glow and 16px spread. Every glow is 25% opacity, 50px blur, no offset. The picker sits below the canvas.
 - **Drop shadow** (renamed from Shadow) is a per-card Off/On control. The glow is drawn by blurring a copy of the card enlarged by the spread, because canvas shadows have no spread. The old shadow strength steps and per-card shadow color are gone.
@@ -56,6 +61,8 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
 ## Next
+
+- Keyboard access for spare chips: they move only by dragging today (frame chips also support Alt+←/→).
 
 - Phone-width layout: below about 600px the header wraps and the side panels get cramped. The app targets laptop and desktop today.
 

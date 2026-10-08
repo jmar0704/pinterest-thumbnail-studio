@@ -59,7 +59,7 @@ export default function StylePanel({
         <Box color="secondary" padding={3} rounding={3}>
           <Flex alignItems="center" gap={2}>
             <Icon accessibilityLabel="" color="subtle" icon="info-circle" size={iconSizes.sm} />
-            <Text size="200">Pick a template to style frames.</Text>
+            <Text size="200">Select a frame to style it.</Text>
           </Flex>
         </Box>
       ) : (

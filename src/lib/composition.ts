@@ -1,7 +1,6 @@
 import { canvas, card, type BleedSide, type Template } from "@/data/templates"
 import {
   borderSteps,
-  defaultCardStyle,
   rotateSteps,
   scatterSteps,
   dropShadowSteps,
@@ -45,14 +44,12 @@ export function mulberry32(seed: number) {
  */
 export function computePlacements({
   template,
-  isEmptyState,
   styles,
   offsets,
   scatter,
   seed,
 }: {
   template: Template
-  isEmptyState: boolean
   styles: CardStyle[]
   offsets: Offset[]
   scatter: number
@@ -62,21 +59,6 @@ export function computePlacements({
   return template.cards
     .map((templateCard, slot) => {
       const style = styles[slot]
-      if (isEmptyState) {
-        return {
-          slot,
-          z: templateCard.z,
-          baseX: templateCard.cx,
-          baseY: templateCard.cy,
-          cx: templateCard.cx,
-          cy: templateCard.cy,
-          rotate: templateCard.rotate,
-          scale: 1,
-          tilt: 0,
-          // The Empty State ignores every style control.
-          style: defaultCardStyle,
-        }
-      }
       // Each slot gets its own stream so one card's jitter never shifts another's.
       const random = mulberry32(seed + (slot + 1) * 7919)
       const spread = () => random() * 2 - 1

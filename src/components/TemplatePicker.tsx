@@ -35,8 +35,11 @@ export default function TemplatePicker({
                 rounding={3}
               >
                 <Flex direction="column" gap={2}>
-                  <Box color="default" overflow="hidden" rounding={2}>
-                    <LayoutThumbnail selected={selected} template={template} />
+                  {/* Inset so the white canvas reads even when cards bleed (Grid). */}
+                  <Box color="default" padding={1} rounding={2}>
+                    <Box overflow="hidden" rounding={1}>
+                      <LayoutThumbnail selected={selected} template={template} />
+                    </Box>
                   </Box>
                   <Flex justifyContent="between">
                     <Text color={selected ? "inverse" : "default"} size="200" weight="bold">

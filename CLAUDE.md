@@ -52,7 +52,7 @@ The source of truth is `src/data/templates.json`. It was first extracted from Fi
 - **`cx` and `cy` are card centers** in canvas pixels. **`rotate` is in degrees, clockwise positive**, already converted from Figma's counter-clockwise convention. **`z` of 0 is the back.**
 - **The 48px margin is the only hard layout rule.** A card may cross it only on sides listed in that template's `allowBleed`. The canvas clips at its edges.
 - **The 5×5 grid (20px gutter) is a visual guide only.** Nothing snaps to it.
-- **`emptyState` is the default layout** shown before a template is picked. It is not a template option, and it ignores the style sliders.
+- **`emptyState` is the default layout** shown before a template is picked. It is not a template option. Its frames can be selected, dragged and styled like a template's (since 2026-10-08), but Scatter never applies to it.
 - **With every style control at its default and Scatter off, each template must render exactly as the JSON specifies.**
 
 ## Code map
