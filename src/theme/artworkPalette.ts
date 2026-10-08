@@ -1,23 +1,69 @@
 // Artwork colors: content painted into the exported thumbnail, not UI.
 // This file and src/data/templates.json are the only places hex values are allowed.
 
-export type ArtworkColor = { name: string; value: string }
+/**
+ * A color template pairs the canvas background with the drop-shadow glow color
+ * from the same Gestalt hue ramp (see the colored-shadow pairs spec):
+ * - light: background {hue}-50, glow {hue}-800, 11px spread
+ * - deep: background {hue}-800, glow {hue}-50, 16px spread
+ * Every glow is 25% opacity, 50px blur, no offset.
+ */
+export type ColorTemplate = {
+  id: string
+  name: string
+  tone: "light" | "deep"
+  background: string
+  shadow: string
+  spread: number
+}
 
-export const backgroundOptions: ArtworkColor[] = [
-  { name: "Off-white", value: "#fbfbf9" },
-  { name: "Stone", value: "#e5e5e0" },
-  { name: "White", value: "#ffffff" },
-  { name: "Sage", value: "#c7d9c4" },
-  { name: "Plum", value: "#211922" },
+export const glow = { alpha: 0.25, blur: 50 } as const
+
+const ramps: { id: string; name: string; light: string; deep: string }[] = [
+  { id: "red", name: "Red", light: "#ffebeb", deep: "#800000" }, // red-pushpin-50 / 800
+  { id: "pink", name: "Pink", light: "#ffebf1", deep: "#82053e" }, // pink-flaminglow
+  { id: "blue", name: "Blue", light: "#e6f4ff", deep: "#003c96" }, // blue-skycicle
+  { id: "teal", name: "Teal", light: "#e6faf5", deep: "#005062" }, // teal-spabattical
+  { id: "green", name: "Green", light: "#e3fae1", deep: "#003020" }, // green-matchacado
+  { id: "purple", name: "Purple", light: "#f0edff", deep: "#400387" }, // purple-mysticool
+  { id: "orange", name: "Orange", light: "#fff0db", deep: "#842000" }, // orange-firetini
+  { id: "yellow", name: "Yellow", light: "#fffebb", deep: "#7c2d00" }, // yellow-caramellow
+  { id: "gray", name: "Gray", light: "#f9f9f9", deep: "#191919" }, // gray-roboflow
 ]
 
-export const shadowColorOptions: ArtworkColor[] = [
-  { name: "Plum", value: "#211922" },
-  { name: "Umber", value: "#6e5d51" },
-  { name: "Rose", value: "#a13c4c" },
-  { name: "Fern", value: "#486a55" },
-  { name: "Slate", value: "#526b8a" },
+/** White (the Figma canvas color, white-mochimalist-0) with the neutral gray-roboflow-800 glow. */
+export const whiteColorTemplate: ColorTemplate = {
+  id: "white",
+  name: "White",
+  tone: "light",
+  background: "#ffffff",
+  shadow: "#191919",
+  spread: 11,
+}
+
+export const colorTemplates: ColorTemplate[] = [
+  whiteColorTemplate,
+  ...ramps.map((ramp) => ({
+    id: `${ramp.id}-light`,
+    name: `${ramp.name} light`,
+    tone: "light" as const,
+    background: ramp.light,
+    shadow: ramp.deep,
+    spread: 11,
+  })),
+  ...ramps.map((ramp) => ({
+    id: `${ramp.id}-deep`,
+    name: `${ramp.name} deep`,
+    tone: "deep" as const,
+    background: ramp.deep,
+    shadow: ramp.light,
+    spread: 16,
+  })),
 ]
+
+export function findColorTemplate(id: string) {
+  return colorTemplates.find((template) => template.id === id) ?? whiteColorTemplate
+}
 
 /** Fill behind the placeholder art in an empty card. */
 export const placeholderFill = "#fff7f7"

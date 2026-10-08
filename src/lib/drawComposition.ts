@@ -1,14 +1,16 @@
 import { canvas, card } from "@/data/templates"
 import {
+  glow,
   imageBackingFill,
   placeholderFill,
   strokeColorFor,
   withAlpha,
+  type ColorTemplate,
 } from "@/theme/artworkPalette"
 import {
   applyCardTransform,
   borderFor,
-  shadowFor,
+  hasDropShadow,
   type Placement,
 } from "@/lib/composition"
 
@@ -21,16 +23,36 @@ export type Overlay = {
   colors: { selection: string; warning: string; guide: string }
 }
 
-function cardPath(context: CanvasRenderingContext2D) {
+function cardPath(context: CanvasRenderingContext2D, inflate = 0) {
   context.beginPath()
   context.roundRect(
-    -card.width / 2,
-    -card.height / 2,
-    card.width,
-    card.height,
-    card.cornerRadius,
+    -card.width / 2 - inflate,
+    -card.height / 2 - inflate,
+    card.width + inflate * 2,
+    card.height + inflate * 2,
+    card.cornerRadius + inflate,
   )
   context.closePath()
+}
+
+/**
+ * Canvas has no shadow spread, so the CSS box-shadow
+ * `0 0 50px <spread> rgba(color, .25)` is drawn as a rounded rect grown by
+ * the spread and blurred. A CSS blur radius of 50px is a Gaussian with a
+ * standard deviation of 25px, which is what the canvas blur() filter takes.
+ */
+function drawGlow(
+  context: CanvasRenderingContext2D,
+  placement: Placement,
+  colors: ColorTemplate,
+) {
+  context.save()
+  applyCardTransform(context, placement)
+  context.filter = `blur(${(glow.blur / 2) * placement.scale}px)`
+  cardPath(context, colors.spread)
+  context.fillStyle = withAlpha(colors.shadow, glow.alpha)
+  context.fill()
+  context.restore()
 }
 
 function isReady(image: HTMLImageElement | undefined): image is HTMLImageElement {
@@ -71,13 +93,13 @@ function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement) {
 export function drawComposition(
   context: CanvasRenderingContext2D,
   {
-    background,
+    colors,
     placements,
     imageForSlot,
     placeholder,
     overlay,
   }: {
-    background: string
+    colors: ColorTemplate
     placements: Placement[]
     imageForSlot: (slot: number) => HTMLImageElement | undefined
     placeholder: HTMLImageElement
@@ -85,29 +107,22 @@ export function drawComposition(
   },
 ) {
   context.save()
-  context.fillStyle = background
+  context.fillStyle = colors.background
   context.fillRect(0, 0, canvas.width, canvas.height)
 
   for (const placement of placements) {
     const image = imageForSlot(placement.slot)
     const hasImage = isReady(image)
-    const shadow = shadowFor(placement.style)
     const border = borderFor(placement.style)
+
+    if (hasDropShadow(placement.style)) drawGlow(context, placement, colors)
 
     context.save()
     applyCardTransform(context, placement)
 
     cardPath(context)
     context.fillStyle = hasImage ? imageBackingFill : placeholderFill
-    if (shadow) {
-      // Shadow offsets are in canvas space, so they ignore the card transform.
-      context.shadowColor = withAlpha(placement.style.shadowColor, shadow.alpha)
-      context.shadowBlur = shadow.blur
-      context.shadowOffsetY = shadow.offsetY
-    }
     context.fill()
-    context.shadowBlur = 0
-    context.shadowOffsetY = 0
 
     context.save()
     cardPath(context)
@@ -126,7 +141,7 @@ export function drawComposition(
 
     if (border > 0) {
       cardPath(context)
-      context.strokeStyle = strokeColorFor(background)
+      context.strokeStyle = strokeColorFor(colors.background)
       // Border sits inside the card edge so it never changes the card's footprint.
       context.save()
       context.clip()

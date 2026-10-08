@@ -39,7 +39,7 @@ Fuller reference lives in `docs/design-system/`, copied from the Design System a
 
 ## Artwork colors
 
-Colors that belong to the user's artwork are content, not UI. That includes canvas backgrounds, shadow colors, the placeholder fill, and frame strokes. They live in one file: `src/theme/artworkPalette.ts`. That file and `src/data/templates.json` are the only places hex values are allowed.
+Colors that belong to the user's artwork are content, not UI. That includes canvas backgrounds, drop-shadow glow colors (paired with the background as color templates), the placeholder fill, and frame strokes. They live in one file: `src/theme/artworkPalette.ts`. That file and `src/data/templates.json` are the only places hex values are allowed.
 
 Canvas drawing code can't read CSS variables directly. If it needs a UI token, read it with `getComputedStyle(document.documentElement).getPropertyValue("--token-name")`.
 
@@ -62,7 +62,8 @@ The source of truth is `src/data/templates.json`. It was extracted from Figma fi
 - `src/lib/composition.ts`: card placement, margin clamping, margin checks, hit testing.
 - `src/lib/drawComposition.ts`: canvas rendering; the overlay (guides, selection) is preview-only.
 - `src/hooks/useHistory.ts`: undo/redo snapshots.
-- `src/components/`: TemplatePicker, FrameChips, StylePanel, StepControl, SwatchPicker.
+- `src/theme/artworkPalette.ts`: color templates (background + paired drop-shadow glow) and other artwork colors.
+- `src/components/`: TemplatePicker, TemplateSettings, FrameChips, StylePanel, StepControl, ColorTemplatePicker.
 
 ## Code conventions
 

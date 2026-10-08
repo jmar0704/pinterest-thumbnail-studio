@@ -9,15 +9,14 @@ import {
   Heading,
   Icon,
   IconButton,
-  SegmentedControl,
   TapArea,
   Text,
-  Tooltip,
 } from "gestalt"
 import "gestalt/dist/gestalt.css"
 import FrameChips from "@/components/FrameChips"
 import StylePanel from "@/components/StylePanel"
-import SwatchPicker from "@/components/SwatchPicker"
+import ColorTemplatePicker from "@/components/ColorTemplatePicker"
+import TemplateSettings from "@/components/TemplateSettings"
 import TemplatePicker from "@/components/TemplatePicker"
 import useHistory from "@/hooks/useHistory"
 import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
@@ -35,14 +34,15 @@ import {
   type Offset,
 } from "@/lib/composition"
 import { drawComposition } from "@/lib/drawComposition"
-import { backgroundOptions } from "@/theme/artworkPalette"
+import { colorTemplates, findColorTemplate, whiteColorTemplate } from "@/theme/artworkPalette"
 import { iconSizes, sizes } from "@/theme/sizes"
 
 type Doc = {
   templateId: string | null
   styles: CardStyle[]
   offsets: Offset[]
-  background: string
+  /** Color template id: background + paired drop-shadow glow. */
+  colors: string
   seed: number
   scatter: number
   images: string[]
@@ -59,7 +59,7 @@ const initialDoc: Doc = {
   templateId: null,
   styles: defaultStyles(),
   offsets: zeroOffsets(),
-  background: backgroundOptions[0].value,
+  colors: whiteColorTemplate.id,
   seed: 48213,
   scatter: defaultScatter,
   images: [],
@@ -198,7 +198,7 @@ function App() {
     element.width = canvas.width
     element.height = canvas.height
     drawComposition(context, {
-      background: doc.background,
+      colors: findColorTemplate(doc.colors),
       placements,
       imageForSlot: (cardSlot) => {
         const src = imageSrcForSlot(cardSlot)
@@ -217,7 +217,7 @@ function App() {
       },
     })
   }, [
-    doc.background,
+    doc.colors,
     placements,
     imageSrcForSlot,
     imageElements,
@@ -350,10 +350,7 @@ function App() {
     }))
 
   const resetStyle = () =>
-    updateStyle({
-      ...defaultCardStyle,
-      shadowColor: doc.styles[slot].shadowColor,
-    })
+updateStyle({ ...defaultCardStyle })
 
   const resetPosition = () =>
     commit((current) => ({
@@ -428,7 +425,7 @@ function App() {
     const context = output.getContext("2d")
     if (!context) return
     drawComposition(context, {
-      background: doc.background,
+      colors: findColorTemplate(doc.colors),
       placements,
       imageForSlot: (cardSlot) => {
         const src = imageSrcForSlot(cardSlot)
@@ -458,7 +455,7 @@ function App() {
             styles: doc.styles.slice(0, cardCount),
             offsets: doc.offsets.slice(0, cardCount),
             scatter: scatterSteps[doc.scatter].label,
-            background: doc.background,
+            colors: doc.colors,
             seed: doc.seed,
           },
           null,
@@ -479,27 +476,9 @@ function App() {
       <Box color="default" display="flex" direction="column" height="100vh">
         <Box as="header" borderStyle="sm" paddingX={5} paddingY={3}>
           <Flex alignItems="center" justifyContent="between">
-            <Flex alignItems="center" gap={3}>
-              <Box
-                alignItems="center"
-                color="brand"
-                display="flex"
-                height={sizes.logo}
-                justifyContent="center"
-                rounding="circle"
-                width={sizes.logo}
-              >
-                <Icon
-                  accessibilityLabel=""
-                  color="inverse"
-                  icon="pinterest"
-                  size={iconSizes.lg}
-                />
-              </Box>
-              <Heading accessibilityLevel={1} size="400">
-                Thumbnail Studio
-              </Heading>
-            </Flex>
+            <Heading accessibilityLevel={1} size="400">
+              Thumbnail Studio
+            </Heading>
             <Flex alignItems="center" gap={2}>
               <Box aria-live="polite" marginEnd={2}>
                 <Text color="subtle" size="200">
@@ -654,80 +633,34 @@ function App() {
                     selectedId={doc.templateId}
                     templates={templates}
                   />
+                  {!isEmptyState ? (
+                    <TemplateSettings
+                      anyMoved={anyMoved}
+                      canShuffle={canShuffle}
+                      onCopyRecipe={copyRecipe}
+                      onResetAllPositions={resetAllPositions}
+                      onScatterChange={(index) =>
+                        commit((current) => ({ ...current, scatter: index }))
+                      }
+                      onShuffle={shuffle}
+                      scatter={doc.scatter}
+                      shuffleHint={shuffleHint}
+                      templateName={template.name}
+                    />
+                  ) : (
+                    <Text color="subtle" size="100">
+                      Pick a template to open its settings.
+                    </Text>
+                  )}
                 </Flex>
               </Flex>
             </Box>
           </div>
 
-          {/* Center: toolbar, artboard, background */}
+          {/* Center: artboard and colors */}
           <div className="workspace-stage">
             <Box color="secondary" display="flex" height="100%" padding={6}>
               <Flex direction="column" flex="grow" gap={4} minWidth={0}>
-                <Flex alignItems="center" gap={3} justifyContent="between" wrap>
-                  <Flex alignItems="center" gap={3}>
-                    {canShuffle ? (
-                      <Button
-                        color="white"
-                        iconStart="shuffles"
-                        onClick={shuffle}
-                        text="Shuffle"
-                      />
-                    ) : (
-                      <Tooltip text={shuffleHint}>
-                        <Button
-                          color="white"
-                          disabled
-                          iconStart="shuffles"
-                          onClick={shuffle}
-                          text="Shuffle"
-                        />
-                      </Tooltip>
-                    )}
-                    <Box
-                      aria-hidden={isEmptyState}
-                      opacity={isEmptyState ? 0.5 : 1}
-                    >
-                      <div inert={isEmptyState}>
-                        <Flex alignItems="center" gap={2}>
-                          <Text size="200" weight="bold">
-                            Scatter
-                          </Text>
-                          <SegmentedControl
-                            items={scatterSteps.map((step) => step.label)}
-                            onChange={({ activeIndex }) => {
-                              if (activeIndex !== doc.scatter)
-                                commit((current) => ({
-                                  ...current,
-                                  scatter: activeIndex,
-                                }))
-                            }}
-                            responsive
-                            selectedItemIndex={doc.scatter}
-                            size="sm"
-                          />
-                        </Flex>
-                      </div>
-                    </Box>
-                  </Flex>
-                  <Flex alignItems="center" gap={2}>
-                    {!isEmptyState ? (
-                      <Button
-                        color="transparent"
-                        disabled={!anyMoved}
-                        iconStart="move-pin"
-                        onClick={resetAllPositions}
-                        text="Reset all positions"
-                      />
-                    ) : null}
-                    <Button
-                      color="transparent"
-                      iconStart="copy-to-clipboard"
-                      onClick={copyRecipe}
-                      text="Copy recipe"
-                    />
-                  </Flex>
-                </Flex>
-
                 {violatingSlots.size > 0 ? (
                   <BannerSlim
                     iconAccessibilityLabel="Warning"
@@ -756,22 +689,15 @@ function App() {
                 </Flex.Item>
 
                 <Flex justifyContent="center">
-                  <Box color="default" padding={3} rounding={5}>
-                    <Flex alignItems="center" gap={3}>
-                      <Text size="200" weight="bold">
-                        Background
-                      </Text>
-                      <SwatchPicker
-                        colors={backgroundOptions}
-                        label="background"
-                        onChange={(background) => {
-                          if (background !== doc.background)
-                            commit((current) => ({ ...current, background }))
-                        }}
-                        size={sizes.swatchLarge}
-                        value={doc.background}
-                      />
-                    </Flex>
+                  <Box color="default" padding={4} rounding={5}>
+                    <ColorTemplatePicker
+                      onChange={(colors) => {
+                        if (colors !== doc.colors)
+                          commit((current) => ({ ...current, colors }))
+                      }}
+                      templates={colorTemplates}
+                      value={doc.colors}
+                    />
                   </Box>
                 </Flex>
               </Flex>

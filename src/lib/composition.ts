@@ -4,7 +4,7 @@ import {
   defaultCardStyle,
   rotateSteps,
   scatterSteps,
-  shadowSteps,
+  dropShadowSteps,
   sizeSteps,
   tiltSteps,
   type CardStyle,
@@ -244,8 +244,8 @@ export function hitTest(placements: Placement[], x: number, y: number) {
   return null
 }
 
-export function shadowFor(style: CardStyle) {
-  return shadowSteps[style.shadow].value
+export function hasDropShadow(style: CardStyle) {
+  return dropShadowSteps[style.dropShadow].value
 }
 
 export function borderFor(style: CardStyle) {

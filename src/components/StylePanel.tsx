@@ -1,28 +1,26 @@
 import { Box, Button, Flex, Icon, Text } from "gestalt"
 import StepControl from "@/components/StepControl"
-import SwatchPicker from "@/components/SwatchPicker"
 import {
   borderSteps,
   defaultCardStyle,
+  dropShadowSteps,
   isDefaultStyle,
   rotateSteps,
-  shadowSteps,
   sizeSteps,
   tiltSteps,
   type CardStyle,
   type Step,
 } from "@/data/styleOptions"
-import { shadowColorOptions } from "@/theme/artworkPalette"
-import { iconSizes, sizes } from "@/theme/sizes"
+import { iconSizes } from "@/theme/sizes"
 
-type StepKey = Exclude<keyof CardStyle, "shadowColor">
+type StepKey = keyof CardStyle
 
 const controls: { key: StepKey; label: string; steps: Step<unknown>[] }[] = [
   { key: "size", label: "Size", steps: sizeSteps },
   { key: "rotate", label: "Rotate", steps: rotateSteps },
   { key: "tilt", label: "3D tilt", steps: tiltSteps },
   { key: "border", label: "Border", steps: borderSteps },
-  { key: "shadow", label: "Shadow", steps: shadowSteps },
+  { key: "dropShadow", label: "Drop shadow", steps: dropShadowSteps },
 ]
 
 export default function StylePanel({
@@ -99,20 +97,6 @@ export default function StylePanel({
                 value={style[control.key]}
               />
             ))}
-            {style.shadow > 0 ? (
-              <Flex direction="column" gap={2}>
-                <Text size="200" weight="bold">
-                  Shadow color
-                </Text>
-                <SwatchPicker
-                  colors={shadowColorOptions}
-                  label="shadow"
-                  onChange={(shadowColor) => onChange({ shadowColor })}
-                  size={sizes.swatchSmall}
-                  value={style.shadowColor}
-                />
-              </Flex>
-            ) : null}
           </Flex>
         </div>
       </Box>

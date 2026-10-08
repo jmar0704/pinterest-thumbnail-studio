@@ -13,6 +13,10 @@ Work from top to bottom, one item per task. Items marked **Decision needed** req
 - **Shuffle** re-rolls Scatter and reassigns images to cards. It's disabled, with a tooltip, when it would have no effect.
 - **Save status:** the fake "Saving…" status is gone. The header shows only real events (upload, export, copy, reset) for a few seconds.
 - **"Frame N" header button:** removed. The frame chips in the Style panel replace it.
+- **Header:** no Pinterest logo; just the "Thumbnail Studio" title.
+- **Template settings:** picking a template opens a settings card under the template grid with Scatter, Shuffle, Reset all positions and Copy recipe. The toolbar above the canvas is gone.
+- **Color templates (background + drop shadow):** background and shadow color are chosen together, following the colored-shadow pairs spec. There are 19 options: White (with the neutral gray-roboflow-800 glow, the default) plus 9 hue ramps in two directions. Light means a `-50` background with a `-800` glow and 11px spread; deep means a `-800` background with a `-50` glow and 16px spread. Every glow is 25% opacity, 50px blur, no offset. The picker sits below the canvas.
+- **Drop shadow** (renamed from Shadow) is a per-card Off/On control. The glow is drawn by blurring a copy of the card enlarged by the spread, because canvas shadows have no spread. The old shadow strength steps and per-card shadow color are gone.
 
 ## Done
 
@@ -39,7 +43,8 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 
 - `opacity={0.5}` on the disabled Style panel and Scatter control. The opacity scale is 0.04 / 0.2 / 0.4 / 0.8 / 0.9.
 - Layout breakpoint `1100px` and the stacked stage height `70vh` in `index.css`.
-- Canvas-space drawing values (margin guide dash 16/12, guide and outline widths 3 and 6, shadow blur/offset per step). These are artwork-scale numbers, not UI spacing.
+- Canvas-space drawing values (margin guide dash 16/12, guide and outline widths 3 and 6). These are artwork-scale numbers, not UI spacing.
+- The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
 ## Next
 

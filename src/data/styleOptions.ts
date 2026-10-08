@@ -1,5 +1,3 @@
-import { shadowColorOptions } from "@/theme/artworkPalette"
-
 // Style controls are stepped, not continuous, so non-designers can't push a
 // card to an extreme. The first step marked `isDefault` must leave the card
 // exactly as templates.json places it.
@@ -36,13 +34,10 @@ export const borderSteps: Step<number>[] = [
   { label: "Thick", value: 12, description: "12 px" },
 ]
 
-export type ShadowLevel = { blur: number; offsetY: number; alpha: number }
-
-export const shadowSteps: Step<ShadowLevel | null>[] = [
-  { label: "None", value: null, description: "No shadow" },
-  { label: "Soft", value: { blur: 24, offsetY: 8, alpha: 0.2 }, description: "Soft" },
-  { label: "Mid", value: { blur: 40, offsetY: 16, alpha: 0.3 }, description: "Medium" },
-  { label: "Strong", value: { blur: 64, offsetY: 28, alpha: 0.4 }, description: "Strong" },
+/** Drop shadow uses the color template's paired glow (see artworkPalette.ts). */
+export const dropShadowSteps: Step<boolean>[] = [
+  { label: "Off", value: false, description: "No shadow" },
+  { label: "On", value: true, description: "Glow from the color template" },
 ]
 
 /** Composition-wide seeded randomness. Shuffle re-rolls it. */
@@ -60,8 +55,7 @@ export type CardStyle = {
   rotate: number
   tilt: number
   border: number
-  shadow: number
-  shadowColor: string
+  dropShadow: number
 }
 
 export const defaultCardStyle: CardStyle = {
@@ -69,8 +63,7 @@ export const defaultCardStyle: CardStyle = {
   rotate: 2,
   tilt: 0,
   border: 0,
-  shadow: 0,
-  shadowColor: shadowColorOptions[0].value,
+  dropShadow: 0,
 }
 
 export const defaultScatter = 0
@@ -81,6 +74,6 @@ export function isDefaultStyle(style: CardStyle) {
     style.rotate === defaultCardStyle.rotate &&
     style.tilt === defaultCardStyle.tilt &&
     style.border === defaultCardStyle.border &&
-    style.shadow === defaultCardStyle.shadow
+    style.dropShadow === defaultCardStyle.dropShadow
   )
 }

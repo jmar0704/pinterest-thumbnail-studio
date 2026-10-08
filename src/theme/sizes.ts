@@ -1,12 +1,12 @@
 // Fixed UI dimensions with no Gestalt token. All sit on the 4px scale.
 
 export const sizes = {
-  logo: 40,
   leftPanelWidth: 320,
   rightPanelWidth: 320,
   frameChip: 40,
   swatchLarge: 32,
-  swatchSmall: 28,
+  swatchDot: 12,
+  colorRowLabel: 40,
   previewMinHeight: 420,
 } as const
 
