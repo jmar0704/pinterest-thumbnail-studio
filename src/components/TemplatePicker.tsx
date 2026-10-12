@@ -1,7 +1,6 @@
 import { Box, Flex, TapArea, Text } from "gestalt"
 import LayoutThumbnail from "@/components/LayoutThumbnail"
 import type { Template } from "@/data/templates"
-import { templateTransitionName } from "@/lib/viewTransition"
 
 export default function TemplatePicker({
   templates,
@@ -25,15 +24,8 @@ export default function TemplatePicker({
               rounding={3}
               tapStyle="compress"
             >
-              <Box
-                borderStyle={selected ? "lg" : "sm"}
-                color={selected ? "selected" : "secondary"}
-                dangerouslySetInlineStyle={{
-                  __style: { viewTransitionName: templateTransitionName(template.id) },
-                }}
-                padding={2}
-                rounding={3}
-              >
+              {/* Tile fill, hover and selected states live in index.css (.template-tile). */}
+              <div className={selected ? "template-tile template-tile-selected" : "template-tile"}>
                 <Flex direction="column" gap={2}>
                   {/* Inset so the white canvas reads even when cards bleed (Grid). */}
                   <Box color="default" padding={1} rounding={2}>
@@ -50,7 +42,7 @@ export default function TemplatePicker({
                     </Text>
                   </Flex>
                 </Flex>
-              </Box>
+              </div>
             </TapArea>
           </Box>
         )

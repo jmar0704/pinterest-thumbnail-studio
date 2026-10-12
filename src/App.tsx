@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
   BannerSlim,
   Box,
@@ -13,31 +13,31 @@ import {
   Text,
 } from "gestalt"
 import "gestalt/dist/gestalt.css"
-import FrameChips from "@/components/FrameChips"
-import StylePanel from "@/components/StylePanel"
 import BlogPreview from "@/components/BlogPreview"
 import ColorTemplatePicker from "@/components/ColorTemplatePicker"
 import DropShadowSwitch from "@/components/DropShadowSwitch"
-import TemplateSettings from "@/components/TemplateSettings"
+import FrameChips from "@/components/FrameChips"
+import FrameToolbar from "@/components/FrameToolbar"
+import StylePanel from "@/components/StylePanel"
 import TemplatePicker from "@/components/TemplatePicker"
 import useHistory from "@/hooks/useHistory"
 import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
+import { defaultCardStyle, isDefaultStyle, type CardStyle } from "@/data/styleOptions"
 import {
-  defaultCardStyle,
-  defaultScatter,
-  isDefaultStyle,
-  scatterSteps,
-  type CardStyle,
-} from "@/data/styleOptions"
-import {
+  cardCorners,
   clampOffset,
   computePlacements,
+  extentOf,
   hitTest,
   marginViolations,
+  rotateStepFor,
+  rotationHandle,
+  sizeStepFor,
+  snapToSymmetry,
   type Offset,
+  type Placement,
 } from "@/lib/composition"
-import { drawComposition } from "@/lib/drawComposition"
-import { withViewTransition } from "@/lib/viewTransition"
+import { drawComposition, handleMetrics } from "@/lib/drawComposition"
 import { colorTemplates, findColorTemplate, whiteColorTemplate } from "@/theme/artworkPalette"
 import { iconSizes, sizes } from "@/theme/sizes"
 
@@ -47,14 +47,24 @@ type Doc = {
   offsets: Offset[]
   /** Color template id: background + paired drop-shadow glow. */
   colors: string
-  seed: number
-  scatter: number
   /** One image per card slot; null shows the placeholder. Images never repeat. */
   slotImages: (string | null)[]
 }
 
-const zeroOffsets = (): Offset[] =>
-  Array.from({ length: maxCards }, () => ({ x: 0, y: 0 }))
+/** What a pointer press on the canvas is doing. */
+type Gesture = {
+  kind: "move" | "resize" | "rotate"
+  slot: number
+  pointerX: number
+  pointerY: number
+  origin: Offset
+  start: Doc
+  moved: boolean
+}
+
+type Point = { x: number; y: number }
+
+const zeroOffsets = (): Offset[] => Array.from({ length: maxCards }, () => ({ x: 0, y: 0 }))
 const defaultStyles = (): CardStyle[] =>
   Array.from({ length: maxCards }, () => ({ ...defaultCardStyle }))
 
@@ -63,32 +73,16 @@ const initialDoc: Doc = {
   styles: defaultStyles(),
   offsets: zeroOffsets(),
   colors: whiteColorTemplate.id,
-  seed: 48213,
-  scatter: defaultScatter,
   slotImages: Array.from({ length: maxCards }, () => null),
 }
 
 const maxFileBytes = 10 * 1024 * 1024
 const placeholderImageSrc = "/assets/580dc.svg"
-const isMac =
-  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
+const noSymmetry = { vertical: false, horizontal: false }
 
 function readToken(name: string) {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim()
-}
-
-function shuffled<T>(items: T[]) {
-  if (new Set(items).size < 2) return items
-  const order = [...items]
-  do {
-    for (let i = order.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[order[i], order[j]] = [order[j], order[i]]
-    }
-  } while (order.every((value, index) => value === items[index]))
-  return order
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
 /** The smallest template with room for `count` images (the largest if none). */
@@ -113,29 +107,25 @@ function revokeUnused(dropped: Doc[], retained: Doc[]) {
   }
 }
 
+const near = (a: Point, b: Point, radius: number) => Math.hypot(a.x - b.x, a.y - b.y) <= radius
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const {
-    state: doc,
-    commit,
-    preview,
-    settle,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-  } = useHistory<Doc>(initialDoc, revokeUnused)
+  const { state: doc, commit, preview, settle, undo, redo, canUndo, canRedo } =
+    useHistory<Doc>(initialDoc, revokeUnused)
   /** The frame being edited, or null when none is selected. */
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
+  const [gestureKind, setGestureKind] = useState<Gesture["kind"] | null>(null)
+  const [symmetry, setSymmetry] = useState(noSymmetry)
+  const [hoverCursor, setHoverCursor] = useState("default")
   const [status, setStatus] = useState("")
   const [imagesLoaded, setImagesLoaded] = useState(0)
-  /** Whether the selected template is open (its settings replace the grid). */
-  const [templateOpen, setTemplateOpen] = useState(false)
   const [styleExpanded, setStyleExpanded] = useState(false)
   /** Snapshot of the design shown in the blog preview, or null when closed. */
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewTitle, setPreviewTitle] = useState("")
+  /** The canvas's on-screen box inside the artboard frame, in CSS px. */
+  const [canvasBox, setCanvasBox] = useState({ left: 0, top: 0, width: 1, height: 1 })
 
   const template = findTemplate(doc.templateId)
   const isEmptyState = doc.templateId === null
@@ -143,6 +133,8 @@ function App() {
   const slot = selectedSlot === null ? null : Math.min(selectedSlot, cardCount - 1)
   /** Slot to read values from while nothing is selected (controls are disabled then). */
   const activeSlot = slot ?? 0
+  /** Canvas px per on-screen CSS px. */
+  const pxPerCss = canvas.width / canvasBox.width
 
   const announce = useCallback((message: string) => setStatus(message), [])
   useEffect(() => {
@@ -151,29 +143,39 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [status])
 
-  const placements = useMemo(
-    () =>
-      computePlacements({
-        template,
-        styles: doc.styles,
-        offsets: doc.offsets,
-        // Scatter belongs to a template's settings; the Empty State sits as designed.
-        scatter: isEmptyState ? 0 : doc.scatter,
-        seed: doc.seed,
-      }),
-    [template, isEmptyState, doc.styles, doc.offsets, doc.scatter, doc.seed],
-  )
+  // Track where the canvas sits on screen, for handles and the frame toolbar.
+  useLayoutEffect(() => {
+    const element = canvasRef.current
+    if (!element) return
+    const measure = () =>
+      setCanvasBox({
+        left: element.offsetLeft,
+        top: element.offsetTop,
+        width: element.offsetWidth || 1,
+        height: element.offsetHeight || 1,
+      })
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    if (element.parentElement) observer.observe(element.parentElement)
+    return () => observer.disconnect()
+  }, [])
 
-  const violatingSlots = useMemo(() => {
-    return new Set(
-      placements
-        .filter(
-          (placement) =>
-            marginViolations(placement, template.allowBleed).length,
-        )
-        .map((placement) => placement.slot),
-    )
-  }, [placements, template])
+  const placements = useMemo(
+    () => computePlacements({ template, styles: doc.styles, offsets: doc.offsets }),
+    [template, doc.styles, doc.offsets],
+  )
+  const selectedPlacement = placements.find((placement) => placement.slot === slot) ?? null
+
+  const violatingSlots = useMemo(
+    () =>
+      new Set(
+        placements
+          .filter((placement) => marginViolations(placement, template.allowBleed).length)
+          .map((placement) => placement.slot),
+      ),
+    [placements, template],
+  )
 
   const imageSrcForSlot = useCallback(
     (cardSlot: number) => doc.slotImages[cardSlot] ?? undefined,
@@ -209,8 +211,7 @@ function App() {
     const elements = [placeholderImage, ...imageElements.values()]
     const onLoad = () => setImagesLoaded((count) => count + 1)
     elements.forEach((image) => image.addEventListener("load", onLoad))
-    return () =>
-      elements.forEach((image) => image.removeEventListener("load", onLoad))
+    return () => elements.forEach((image) => image.removeEventListener("load", onLoad))
   }, [imageElements, placeholderImage])
 
   useEffect(() => {
@@ -230,11 +231,14 @@ function App() {
       overlay: {
         selectedSlot: slot,
         violatingSlots,
-        showMarginGuide: isDragging,
+        showMarginGuide: gestureKind === "move",
+        symmetry,
+        pxPerCss,
         colors: {
           selection: readToken("--color-border-focus"),
           warning: readToken("--color-icon-warning"),
           guide: readToken("--color-border-default"),
+          handleFill: readToken("--color-background-default"),
         },
       },
     })
@@ -246,7 +250,9 @@ function App() {
     placeholderImage,
     slot,
     violatingSlots,
-    isDragging,
+    gestureKind,
+    symmetry,
+    pxPerCss,
     imagesLoaded,
   ])
 
@@ -266,35 +272,46 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [undo, redo])
 
-  // ---- Canvas dragging -----------------------------------------------------
+  // ---- Canvas gestures: move, resize (corners), rotate (top handle) -------------
 
-  const dragRef = useRef<{
-    slot: number
-    pointerX: number
-    pointerY: number
-    origin: Offset
-    start: Doc
-    moved: boolean
-  } | null>(null)
+  const gestureRef = useRef<Gesture | null>(null)
 
-  const toCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const toCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>): Point => {
     const bounds = event.currentTarget.getBoundingClientRect()
     return {
       x: ((event.clientX - bounds.left) / bounds.width) * canvas.width,
       y: ((event.clientY - bounds.top) / bounds.height) * canvas.height,
-      scale: canvas.width / bounds.width,
     }
+  }
+
+  /** Which selection handle (if any) is under a canvas point, and which corner. */
+  const handleAt = (point: Point) => {
+    if (!selectedPlacement) return null
+    const radius = (handleMetrics.radius + 6) * pxPerCss
+    const { handle } = rotationHandle(selectedPlacement, handleMetrics.rotationDistance * pxPerCss)
+    if (near(point, handle, radius)) return { kind: "rotate" as const, corner: -1 }
+    const corner = cardCorners(selectedPlacement).findIndex((item) => near(point, item, radius))
+    return corner === -1 ? null : { kind: "resize" as const, corner }
+  }
+
+  const cursorFor = (point: Point) => {
+    const onHandle = handleAt(point)
+    if (onHandle?.kind === "rotate") return "crosshair"
+    if (onHandle) return onHandle.corner % 2 === 0 ? "nwse-resize" : "nesw-resize"
+    return hitTest(placements, point.x, point.y) ? "grab" : "default"
   }
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const point = toCanvasPoint(event)
-    const hit = hitTest(placements, point.x, point.y)
+    const onHandle = handleAt(point)
+    const hit = onHandle ? selectedPlacement : hitTest(placements, point.x, point.y)
     if (!hit) {
       setSelectedSlot(null)
       return
     }
     setSelectedSlot(hit.slot)
-    dragRef.current = {
+    gestureRef.current = {
+      kind: onHandle?.kind ?? "move",
       slot: hit.slot,
       pointerX: event.clientX,
       pointerY: event.clientY,
@@ -306,36 +323,69 @@ function App() {
   }
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const drag = dragRef.current
-    if (!drag) return
-    const { scale } = toCanvasPoint(event)
-    const dx = (event.clientX - drag.pointerX) * scale
-    const dy = (event.clientY - drag.pointerY) * scale
-    if (!drag.moved && Math.hypot(dx, dy) < 3) return
-    if (!drag.moved) {
-      drag.moved = true
-      setIsDragging(true)
+    const gesture = gestureRef.current
+    const point = toCanvasPoint(event)
+    if (!gesture) {
+      setHoverCursor(cursorFor(point))
+      return
     }
-    const placement = placements.find((item) => item.slot === drag.slot)
+    const dx = (event.clientX - gesture.pointerX) * pxPerCss
+    const dy = (event.clientY - gesture.pointerY) * pxPerCss
+    if (!gesture.moved && Math.hypot(dx, dy) < 3) return
+    if (!gesture.moved) {
+      gesture.moved = true
+      setGestureKind(gesture.kind)
+    }
+    const placement = placements.find((item) => item.slot === gesture.slot)
     if (!placement) return
-    const next = clampOffset(
-      placement,
-      { x: drag.origin.x + dx, y: drag.origin.y + dy },
-      template.allowBleed,
-    )
+
+    if (gesture.kind === "move") {
+      const clamped = clampOffset(
+        placement,
+        { x: gesture.origin.x + dx, y: gesture.origin.y + dy },
+        template.allowBleed,
+      )
+      // Snap to the canvas's center lines, then keep the margin rule.
+      const snapped = snapToSymmetry(placement.baseX + clamped.x, placement.baseY + clamped.y)
+      const next = clampOffset(
+        placement,
+        { x: snapped.cx - placement.baseX, y: snapped.cy - placement.baseY },
+        template.allowBleed,
+      )
+      setSymmetry({
+        vertical: snapped.guides.vertical && placement.baseX + next.x === canvas.width / 2,
+        horizontal: snapped.guides.horizontal && placement.baseY + next.y === canvas.height / 2,
+      })
+      preview((current) => ({
+        ...current,
+        offsets: current.offsets.map((offset, index) => (index === gesture.slot ? next : offset)),
+      }))
+      return
+    }
+
+    // Resize and rotate snap to the same preset steps as the Style controls.
+    const update: Partial<CardStyle> =
+      gesture.kind === "resize"
+        ? { size: sizeStepFor(placement, point) }
+        : { rotate: rotateStepFor(placement, template.cards[gesture.slot].rotate, point) }
+    const style = doc.styles[gesture.slot]
+    if (Object.entries(update).every(([key, value]) => style[key as keyof CardStyle] === value)) {
+      return
+    }
     preview((current) => ({
       ...current,
-      offsets: current.offsets.map((offset, index) =>
-        index === drag.slot ? next : offset,
+      styles: current.styles.map((item, index) =>
+        index === gesture.slot ? { ...item, ...update } : item,
       ),
     }))
   }
 
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const drag = dragRef.current
-    if (drag?.moved) settle(drag.start)
-    dragRef.current = null
-    setIsDragging(false)
+    const gesture = gestureRef.current
+    if (gesture?.moved) settle(gesture.start)
+    gestureRef.current = null
+    setGestureKind(null)
+    setSymmetry(noSymmetry)
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
@@ -343,21 +393,17 @@ function App() {
 
   // ---- Actions ---------------------------------------------------------------
 
-  const openTemplate = (id: string) =>
-    withViewTransition(() => {
-      setTemplateOpen(true)
-      if (id === doc.templateId) return
-      // Card slots don't correspond between templates, so start each one clean.
-      commit((current) => ({
-        ...current,
-        templateId: id,
-        offsets: zeroOffsets(),
-        styles: defaultStyles(),
-      }))
-      setSelectedSlot(0)
-    })
-
-  const closeTemplate = () => withViewTransition(() => setTemplateOpen(false))
+  const selectTemplate = (id: string) => {
+    if (id === doc.templateId) return
+    // Card slots don't correspond between templates, so start each one clean.
+    commit((current) => ({
+      ...current,
+      templateId: id,
+      offsets: zeroOffsets(),
+      styles: defaultStyles(),
+    }))
+    setSelectedSlot(0)
+  }
 
   const clearTemplate = () => {
     commit((current) => ({
@@ -367,7 +413,6 @@ function App() {
       styles: defaultStyles(),
     }))
     setSelectedSlot(null)
-    setTemplateOpen(false)
     announce("Back to the empty layout. Your images are kept.")
   }
 
@@ -391,51 +436,24 @@ function App() {
       ),
     }))
 
-  /** Every frame, style, Scatter and the background back to the template as designed. */
+  /** Every frame, style and the background back to the template as designed. */
   const resetAll = () => {
     commit((current) => ({
       ...current,
       offsets: zeroOffsets(),
       styles: defaultStyles(),
-      scatter: defaultScatter,
       colors: whiteColorTemplate.id,
     }))
     announce(`${template.name} is back to its original design`)
   }
 
   const isMoved = (offset: Offset) => offset.x !== 0 || offset.y !== 0
-  const anyMoved = doc.offsets.slice(0, cardCount).some(isMoved)
   const isFrameChanged =
     slot !== null && (isMoved(doc.offsets[slot]) || !isDefaultStyle(doc.styles[slot]))
   const canResetAll =
-    anyMoved ||
+    doc.offsets.slice(0, cardCount).some(isMoved) ||
     doc.styles.slice(0, cardCount).some((style) => !isDefaultStyle(style)) ||
-    doc.scatter !== defaultScatter ||
     doc.colors !== whiteColorTemplate.id
-
-  const resetAllPositions = () => {
-    commit((current) => ({ ...current, offsets: zeroOffsets() }))
-    announce("All frames back in their template spots")
-  }
-
-  const canReorderImages = filledCount > 1
-  const canShuffle = canReorderImages || (!isEmptyState && doc.scatter > 0)
-  const shuffleHint = isEmptyState
-    ? "Add 2 or more images to shuffle them"
-    : "Add 2 or more images, or turn on Scatter, to shuffle"
-
-  const shuffle = () =>
-    commit((current) => ({
-      ...current,
-      seed: Math.floor(Math.random() * 90000) + 10000,
-      // Swap images between this layout's frames; empty frames move too.
-      slotImages: canReorderImages
-        ? [
-            ...shuffled(current.slotImages.slice(0, cardCount)),
-            ...current.slotImages.slice(cardCount),
-          ]
-        : current.slotImages,
-    }))
 
   const pickImages = (multiple: boolean, onPick: (files: File[]) => void) => {
     const input = document.createElement("input")
@@ -471,45 +489,35 @@ function App() {
       const total = totalImages + urls.length
       const target = total > cardCount ? templateFor(total) : null
 
-      const apply = () => {
-        commit((current) => {
-          const count = target ? target.cards.length : cardCount
-          const slotImages = [...current.slotImages]
-          // When switching to fit, pull spare images into view too.
-          const incoming = target
-            ? [
-                ...slotImages.slice(count).filter((src): src is string => src !== null),
-                ...urls,
-              ]
-            : urls
-          if (target) for (let index = count; index < maxCards; index += 1) slotImages[index] = null
-          let next = 0
-          for (let index = 0; index < count && next < incoming.length; index += 1) {
-            if (!slotImages[index]) slotImages[index] = incoming[next++]
-          }
-          return target
-            ? {
-                ...current,
-                templateId: target.id,
-                offsets: zeroOffsets(),
-                styles: defaultStyles(),
-                slotImages,
-              }
-            : { ...current, slotImages }
-        })
-        if (target) setTemplateOpen(true)
-        setSelectedSlot(target ? 0 : (emptySlots[0] ?? 0))
-      }
-      if (target) withViewTransition(apply)
-      else apply()
+      commit((current) => {
+        const count = target ? target.cards.length : cardCount
+        const slotImages = [...current.slotImages]
+        // When switching to fit, pull spare images into view too.
+        const incoming = target
+          ? [...slotImages.slice(count).filter((src): src is string => src !== null), ...urls]
+          : urls
+        if (target) for (let index = count; index < maxCards; index += 1) slotImages[index] = null
+        let next = 0
+        for (let index = 0; index < count && next < incoming.length; index += 1) {
+          if (!slotImages[index]) slotImages[index] = incoming[next++]
+        }
+        return target
+          ? {
+              ...current,
+              templateId: target.id,
+              offsets: zeroOffsets(),
+              styles: defaultStyles(),
+              slotImages,
+            }
+          : { ...current, slotImages }
+      })
+      setSelectedSlot(target ? 0 : (emptySlots[0] ?? 0))
 
       const skipped = files.length - accepted.length
       announce(
         [
           `${urls.length} ${urls.length === 1 ? "image" : "images"} added`,
-          target && target.id !== doc.templateId
-            ? `switched to ${target.name} to fit ${total}`
-            : "",
+          target && target.id !== doc.templateId ? `switched to ${target.name} to fit ${total}` : "",
           skipped > 0 ? `${skipped} skipped (${maxCards} max)` : "",
         ]
           .filter(Boolean)
@@ -544,13 +552,14 @@ function App() {
     )
   }
 
-  const removeImage = () => {
+  /** Removes the selected frame's image only; the frame itself stays. */
+  const deleteImage = () => {
     if (slot === null) return
     commit((current) => ({
       ...current,
       slotImages: current.slotImages.map((src, index) => (index === slot ? null : src)),
     }))
-    announce(`Frame ${slot + 1} image removed`)
+    announce(`Frame ${slot + 1} image deleted`)
   }
 
   /** The thumbnail as exported: no guides, no selection outline. */
@@ -584,7 +593,7 @@ function App() {
       if (!blob) return
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
-      link.download = `pinterest-thumbnail-${template.id}-${doc.seed}.png`
+      link.download = `thumbnail-${template.id}.png`
       link.href = url
       link.click()
       URL.revokeObjectURL(url)
@@ -592,27 +601,17 @@ function App() {
     }, "image/png")
   }
 
-  const copyRecipe = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        JSON.stringify(
-          {
-            format: "blog-header-16x9",
-            template: doc.templateId,
-            styles: doc.styles.slice(0, cardCount),
-            offsets: doc.offsets.slice(0, cardCount),
-            scatter: scatterSteps[doc.scatter].label,
-            colors: doc.colors,
-            seed: doc.seed,
-          },
-          null,
-          2,
-        ),
-      )
-      announce("Recipe copied")
-    } catch {
-      announce("Couldn't copy. Check clipboard permissions.")
-    }
+  /**
+   * Where the selected frame's toolbar sits (CSS px within the artboard frame):
+   * centered under the frame, kept inside the canvas when the frame runs off it.
+   */
+  const toolbarPosition = (placement: Placement) => {
+    const extent = extentOf(placement)
+    const toolbarHeight = sizes.toolbarButton + 16
+    const centerX = Math.min(Math.max(placement.cx, 0), canvas.width) / pxPerCss
+    const below = Math.min(extent.bottom, canvas.height) / pxPerCss + sizes.toolbarOffset
+    const top = Math.min(below, canvasBox.height - toolbarHeight - sizes.toolbarOffset)
+    return { left: canvasBox.left + centerX, top: canvasBox.top + top }
   }
 
   const undoShortcut = isMac ? "⌘Z" : "Ctrl+Z"
@@ -746,48 +745,27 @@ function App() {
                       />
                     ) : null}
                   </Flex>
-                  {templateOpen && !isEmptyState ? (
-                    <TemplateSettings
-                      anyMoved={anyMoved}
-                      canShuffle={canShuffle}
-                      onBack={closeTemplate}
-                      onCopyRecipe={copyRecipe}
-                      onResetAllPositions={resetAllPositions}
-                      onScatterChange={(index) =>
-                        commit((current) => ({ ...current, scatter: index }))
-                      }
-                      onShuffle={shuffle}
-                      scatter={doc.scatter}
-                      shuffleHint={shuffleHint}
-                      template={template}
-                    />
-                  ) : (
-                    <>
-                      <Text color="subtle" size="100">
-                        {isEmptyState
-                          ? "Pick a template to open its settings."
-                          : `Select ${template.name} to open its settings again.`}
-                      </Text>
-                      <TemplatePicker
-                        onSelect={openTemplate}
-                        selectedId={doc.templateId}
-                        templates={templates}
-                      />
-                    </>
-                  )}
+                  <Text color="subtle" size="100">
+                    Pick a template to arrange your frames.
+                  </Text>
+                  <TemplatePicker
+                    onSelect={selectTemplate}
+                    selectedId={doc.templateId}
+                    templates={templates}
+                  />
                 </Flex>
               </Flex>
             </Box>
           </div>
 
-          {/* Center: artboard and preview */}
+          {/* Center: artboard, frame toolbar and preview */}
           <div className="workspace-stage">
             <Box color="secondary" display="flex" height="100%" padding={6}>
               <Flex direction="column" flex="grow" gap={4} minWidth={0}>
                 {violatingSlots.size > 0 ? (
                   <BannerSlim
                     iconAccessibilityLabel="Warning"
-                    message={`${listFrames([...violatingSlots].sort((a, b) => a - b))} the ${canvas.margin}px margin. Drag back inside, or lower Size, Rotate, 3D tilt or Scatter.`}
+                    message={`${listFrames([...violatingSlots].sort((a, b) => a - b))} the ${canvas.margin}px margin. Drag back inside, or lower Size, Rotate or 3D tilt.`}
                     type="warning"
                   />
                 ) : null}
@@ -795,21 +773,35 @@ function App() {
                 <Flex.Item flex="grow" minWidth={0}>
                   <div className="artboard-frame">
                     <canvas
-                      aria-label={`Preview of the ${template.name} thumbnail. Drag a frame to move it.`}
-                      className="artboard artboard-draggable"
+                      aria-label={`Preview of the ${template.name} thumbnail. Drag a frame to move it; drag its corners to resize or its top handle to rotate.`}
+                      className="artboard"
                       onPointerCancel={handlePointerUp}
                       onPointerDown={handlePointerDown}
+                      onPointerLeave={() => {
+                        if (!gestureRef.current) setHoverCursor("default")
+                      }}
                       onPointerMove={handlePointerMove}
                       onPointerUp={handlePointerUp}
                       ref={canvasRef}
                       role="img"
+                      style={{ cursor: gestureKind === "move" ? "grabbing" : hoverCursor }}
                     />
+                    <Button color="white" iconStart="eye" onClick={openPreview} text="Preview" />
+
+                    {selectedPlacement && slot !== null && gestureKind === null ? (
+                      <div className="frame-toolbar-anchor" style={toolbarPosition(selectedPlacement)}>
+                        <FrameToolbar
+                          canReset={isFrameChanged}
+                          hasImage={Boolean(doc.slotImages[slot])}
+                          onDeleteImage={deleteImage}
+                          onReplaceImage={replaceImage}
+                          onResetFrame={resetFrame}
+                          slot={slot}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </Flex.Item>
-
-                <Flex justifyContent="center">
-                  <Button color="white" iconStart="eye" onClick={openPreview} text="Preview" />
-                </Flex>
               </Flex>
             </Box>
           </div>
@@ -835,52 +827,14 @@ function App() {
                   spareSlots={spareSlots}
                   warningSlots={violatingSlots}
                 />
-                <Flex direction="column" gap={2}>
-                  {slot !== null ? (
-                    <Flex gap={2}>
-                      <Flex.Item flex="grow">
-                        <Button
-                          fullWidth
-                          iconStart={doc.slotImages[slot] ? "refresh" : "add"}
-                          onClick={replaceImage}
-                          size="sm"
-                          text={`${doc.slotImages[slot] ? "Replace" : "Add"} image for frame ${slot + 1}`}
-                        />
-                      </Flex.Item>
-                      {doc.slotImages[slot] ? (
-                        <IconButton
-                          accessibilityLabel={`Remove image from frame ${slot + 1}`}
-                          icon="trash-can"
-                          onClick={removeImage}
-                          size="sm"
-                          tooltip={{ text: "Remove image" }}
-                        />
-                      ) : null}
-                    </Flex>
-                  ) : null}
-                  <Flex gap={2}>
-                    <Flex.Item flex="grow">
-                      <Button
-                        disabled={!isFrameChanged}
-                        fullWidth
-                        iconStart="move-pin"
-                        onClick={resetFrame}
-                        size="sm"
-                        text="Reset frame"
-                      />
-                    </Flex.Item>
-                    <Flex.Item flex="grow">
-                      <Button
-                        disabled={!canResetAll}
-                        fullWidth
-                        iconStart="refresh"
-                        onClick={resetAll}
-                        size="sm"
-                        text="Reset all"
-                      />
-                    </Flex.Item>
-                  </Flex>
-                </Flex>
+                <Button
+                  disabled={!canResetAll}
+                  fullWidth
+                  iconStart="refresh"
+                  onClick={resetAll}
+                  size="sm"
+                  text="Reset all"
+                />
                 <Divider />
                 <StylePanel
                   enabled={slot !== null}

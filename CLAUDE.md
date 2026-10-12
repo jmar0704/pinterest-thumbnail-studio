@@ -52,19 +52,18 @@ The source of truth is `src/data/templates.json`. It was first extracted from Fi
 - **`cx` and `cy` are card centers** in canvas pixels. **`rotate` is in degrees, clockwise positive**, already converted from Figma's counter-clockwise convention. **`z` of 0 is the back.**
 - **The 48px margin is the only hard layout rule.** A card may cross it only on sides listed in that template's `allowBleed`. The canvas clips at its edges.
 - **The 5×5 grid (20px gutter) is a visual guide only.** Nothing snaps to it.
-- **`emptyState` is the default layout** shown before a template is picked. It is not a template option. Its frames can be selected, dragged and styled like a template's (since 2026-10-08), but Scatter never applies to it.
-- **With every style control at its default and Scatter off, each template must render exactly as the JSON specifies.**
+- **`emptyState` is the default layout** shown before a template is picked. It is not a template option. Its frames can be selected, dragged and styled like a template's (since 2026-10-08).
+- **With every style control at its default, each template must render exactly as the JSON specifies.**
 
 ## Code map
 
 - `src/data/templates.ts`: typed access to `templates.json`.
-- `src/data/styleOptions.ts`: the stepped style controls and Scatter levels.
-- `src/lib/composition.ts`: card placement, margin clamping, margin checks, hit testing.
+- `src/data/styleOptions.ts`: the stepped style controls.
+- `src/lib/composition.ts`: card placement, margin clamping, margin checks, hit testing, selection-handle geometry (resize/rotate snap to the style steps) and center-line snapping.
 - `src/lib/drawComposition.ts`: canvas rendering; the overlay (guides, selection) is preview-only.
 - `src/hooks/useHistory.ts`: undo/redo snapshots.
 - `src/theme/artworkPalette.ts`: color templates (background + paired drop-shadow glow) and other artwork colors.
-- `src/lib/viewTransition.ts`: View Transition helper for opening a template. The update always runs, even when the browser skips the transition (for example, when the page is hidden).
-- `src/components/`: TemplatePicker, LayoutThumbnail, TemplateSettings (the opened template), FrameChips (3-column frame grid: tap to select, drag to swap images), StylePanel (the Style dropdown), StepControl, ColorTemplatePicker, DropShadowSwitch, BlogPreview (the Preview modal).
+- `src/components/`: TemplatePicker, LayoutThumbnail, FrameChips (3-column frame grid: tap to select, drag to swap images), FrameToolbar (floating actions under the selected frame), StylePanel (the Style dropdown), StepControl, ColorTemplatePicker, DropShadowSwitch, BlogPreview (the Preview modal).
 - UI copy uses sentence case, including section headings.
 
 ## Code conventions

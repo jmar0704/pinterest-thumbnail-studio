@@ -65,6 +65,34 @@ body {
   stroke-width: 16;
 }
 
+/*
+ * Template tiles: secondary fill, the design system's weak (hover) fill on
+ * hover, selected-base when chosen (selected-strong on hover). TapArea's
+ * compress gives the pressed state.
+ */
+.template-tile {
+  padding: var(--space-200);
+  border-radius: var(--rounding-300);
+  border: var(--g-border-width) solid var(--color-border-container);
+  background-color: var(--color-background-secondary-base);
+  transition:
+    background-color 160ms ease-out,
+    border-color 160ms ease-out;
+}
+
+.template-tile:hover {
+  background-color: var(--color-background-secondary-weak);
+}
+
+.template-tile-selected {
+  border: var(--g-border-width-lg) solid var(--color-background-selected-base);
+  background-color: var(--color-background-selected-base);
+}
+
+.template-tile-selected:hover {
+  background-color: var(--color-background-selected-strong);
+}
+
 .template-card-selected {
   fill: var(--color-background-selected-weak);
   stroke: var(--color-background-selected-base);
@@ -108,16 +136,21 @@ body {
 
 /* The artboard scales to fit whichever of width or height runs out first. */
 .artboard-frame {
+  position: relative;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* The Preview button sits 24px below the canvas. */
+  gap: var(--space-600);
   container-type: size;
 }
 
 .artboard {
   display: block;
-  width: min(100cqw, 100cqh * 16 / 9);
+  /* Leave room for the gap and the 40px Preview button below. */
+  width: min(100cqw, (100cqh - var(--space-600) - var(--space-1000)) * 16 / 9);
   aspect-ratio: 16 / 9;
   border-radius: var(--rounding-400);
   background: var(--color-background-default);
@@ -125,40 +158,6 @@ body {
   touch-action: none;
 }
 
-.artboard-draggable {
-  cursor: grab;
-}
-
-.artboard-draggable:active {
-  cursor: grabbing;
-}
-
-/*
- * Opening a template: its tile grows into the settings panel (View
- * Transitions), then the settings rise in. Gestalt has no motion tokens, so
- * these durations are flagged in BACKLOG.md.
- */
-::view-transition-group(*) {
-  animation-duration: 280ms;
-  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
-}
-
-.template-settings-body {
-  animation: template-settings-in 280ms cubic-bezier(0.2, 0, 0, 1) 80ms both;
-}
-
-@keyframes template-settings-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-200));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .template-settings-body {
-    animation: none;
-  }
-}
 
 /* Frame chips: drag one onto another to swap their images. */
 .frame-chip {
@@ -212,4 +211,41 @@ body {
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: var(--rounding-400);
+}
+
+/* Floating actions for the selected frame, positioned under it by App. */
+.frame-toolbar-anchor {
+  position: absolute;
+  z-index: 1;
+  transform: translateX(-50%);
+}
+
+.frame-toolbar {
+  box-shadow: var(--elevation-floating);
+  border-radius: var(--rounding-pill);
+}
+
+.frame-action {
+  border-radius: var(--rounding-pill);
+  transition:
+    background-color 160ms ease-out,
+    box-shadow 160ms ease-out;
+}
+
+.frame-action:not(.frame-action-disabled):hover {
+  background-color: var(--color-background-secondary-base);
+}
+
+/* Pressed: keep the light fill and add the focus ring. */
+.frame-action:not(.frame-action-disabled):active,
+.frame-action:has(:focus-visible) {
+  background-color: var(--color-background-secondary-base);
+  box-shadow: 0 0 0 var(--g-border-width-lg) var(--color-border-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .template-tile,
+  .frame-action {
+    transition: none;
+  }
 }

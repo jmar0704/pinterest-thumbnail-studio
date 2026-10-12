@@ -45,15 +45,6 @@ export const dropShadowSteps: Step<boolean>[] = [
   { label: "On", value: true, description: "Glow from the color template" },
 ]
 
-/** Composition-wide seeded randomness. Shuffle re-rolls it. */
-export type ScatterLevel = { offset: number; rotate: number; size: number }
-
-export const scatterSteps: Step<ScatterLevel>[] = [
-  { label: "Off", value: { offset: 0, rotate: 0, size: 0 }, description: "Cards sit exactly as designed" },
-  { label: "Subtle", value: { offset: 24, rotate: 4, size: 0.04 }, description: "A little hand-placed variation" },
-  { label: "Playful", value: { offset: 56, rotate: 9, size: 0.08 }, description: "Loose, collage-like variation" },
-]
-
 /** Per-card style, stored as step indexes into the arrays above. */
 export type CardStyle = {
   size: number
@@ -70,8 +61,6 @@ export const defaultCardStyle: CardStyle = {
   border: 0,
   dropShadow: 0,
 }
-
-export const defaultScatter = 0
 
 export function isDefaultStyle(style: CardStyle) {
   return (

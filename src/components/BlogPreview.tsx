@@ -68,10 +68,8 @@ export default function BlogPreview({
             <Button color="gray" onClick={onDismiss} text="Back to editor" />
           </Flex>
         }
-        heading="Preview"
         onDismiss={onDismiss}
         size={sizes.previewModalWidth}
-        subHeading="How your thumbnail reads as the lead image of a blog listing."
       >
         <Flex direction="column" gap={6}>
           <TextField

@@ -2,7 +2,6 @@ import { canvas, card, type BleedSide, type Template } from "@/data/templates"
 import {
   borderSteps,
   rotateSteps,
-  scatterSteps,
   dropShadowSteps,
   sizeSteps,
   tiltSteps,
@@ -14,7 +13,7 @@ export type Offset = { x: number; y: number }
 export type Placement = {
   slot: number
   z: number
-  /** Center before the user's drag offset (template + scatter). */
+  /** Center before the user's drag offset (the template's position). */
   baseX: number
   baseY: number
   cx: number
@@ -29,56 +28,32 @@ export type Placement = {
 
 export type Extent = { left: number; right: number; top: number; bottom: number }
 
-export function mulberry32(seed: number) {
-  return () => {
-    let value = (seed += 0x6d2b79f5)
-    value = Math.imul(value ^ (value >>> 15), value | 1)
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61)
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296
-  }
-}
-
 /**
- * Where every card of a layout sits. With all styles at default, scatter off
- * and no offsets, this returns the template's JSON values unchanged.
+ * Where every card of a layout sits. With all styles at default and no
+ * offsets, this returns the template's JSON values unchanged.
  */
 export function computePlacements({
   template,
   styles,
   offsets,
-  scatter,
-  seed,
 }: {
   template: Template
   styles: CardStyle[]
   offsets: Offset[]
-  scatter: number
-  seed: number
 }): Placement[] {
-  const jitter = scatterSteps[scatter].value
   return template.cards
     .map((templateCard, slot) => {
       const style = styles[slot]
-      // Each slot gets its own stream so one card's jitter never shifts another's.
-      const random = mulberry32(seed + (slot + 1) * 7919)
-      const spread = () => random() * 2 - 1
-      const baseX = templateCard.cx + spread() * jitter.offset
-      const baseY = templateCard.cy + spread() * jitter.offset
-      const rotate =
-        templateCard.rotate +
-        rotateSteps[style.rotate].value +
-        spread() * jitter.rotate
-      const scale = sizeSteps[style.size].value * (1 + spread() * jitter.size)
       const offset = offsets[slot]
       return {
         slot,
         z: templateCard.z,
-        baseX,
-        baseY,
-        cx: baseX + offset.x,
-        cy: baseY + offset.y,
-        rotate,
-        scale,
+        baseX: templateCard.cx,
+        baseY: templateCard.cy,
+        cx: templateCard.cx + offset.x,
+        cy: templateCard.cy + offset.y,
+        rotate: templateCard.rotate + rotateSteps[style.rotate].value,
+        scale: sizeSteps[style.size].value,
         tilt: tiltSteps[style.tilt].value,
         style,
       }
@@ -231,4 +206,91 @@ export function hasDropShadow(style: CardStyle) {
 
 export function borderFor(style: CardStyle) {
   return borderSteps[style.border].value
+}
+
+// ---- Selection handles and symmetry --------------------------------------
+
+/** A card-space point (origin at the card center) in canvas coordinates. */
+export function toCanvas(placement: Placement, x: number, y: number) {
+  const [a, b, c, d] = linearTransform(placement)
+  return { x: placement.cx + a * x + c * y, y: placement.cy + b * x + d * y }
+}
+
+/** The card's four corners in canvas coordinates (top-left, clockwise). */
+export function cardCorners(placement: Placement) {
+  const hw = card.width / 2
+  const hh = card.height / 2
+  return [
+    toCanvas(placement, -hw, -hh),
+    toCanvas(placement, hw, -hh),
+    toCanvas(placement, hw, hh),
+    toCanvas(placement, -hw, hh),
+  ]
+}
+
+/**
+ * The rotation handle: a point `distance` canvas px above the card's top edge
+ * (along the card's own "up"), plus the top-center point it hangs from.
+ */
+export function rotationHandle(placement: Placement, distance: number) {
+  const top = toCanvas(placement, 0, -card.height / 2)
+  const theta = (placement.rotate * Math.PI) / 180
+  return {
+    anchor: top,
+    handle: { x: top.x + Math.sin(theta) * distance, y: top.y - Math.cos(theta) * distance },
+  }
+}
+
+/** Index of the step whose value is closest to `target`. */
+export function nearestStep(values: number[], target: number) {
+  let best = 0
+  values.forEach((value, index) => {
+    if (Math.abs(value - target) < Math.abs(values[best] - target)) best = index
+  })
+  return best
+}
+
+/** Size step for a corner dragged to `point`: scale ∝ distance from center. */
+export function sizeStepFor(placement: Placement, point: { x: number; y: number }) {
+  const unit = Math.hypot(card.width / 2, card.height / 2)
+  const scale = Math.hypot(point.x - placement.cx, point.y - placement.cy) / unit
+  return nearestStep(
+    sizeSteps.map((step) => step.value),
+    scale,
+  )
+}
+
+/** Rotate step for the rotation handle dragged to `point`. */
+export function rotateStepFor(
+  placement: Placement,
+  templateRotate: number,
+  point: { x: number; y: number },
+) {
+  const angle =
+    (Math.atan2(point.x - placement.cx, -(point.y - placement.cy)) * 180) / Math.PI
+  // Normalize the offset from the template's rotation to (-180, 180].
+  const offset = ((angle - templateRotate + 540) % 360) - 180
+  return nearestStep(
+    rotateSteps.map((step) => step.value),
+    offset,
+  )
+}
+
+/** How close (canvas px) a card's center must be to a center line to snap. */
+export const symmetrySnap = 12
+
+/**
+ * Snap a card's center onto the canvas's vertical and/or horizontal center
+ * line when it comes within `symmetrySnap`, so frames can be centered by hand.
+ */
+export function snapToSymmetry(cx: number, cy: number) {
+  const midX = canvas.width / 2
+  const midY = canvas.height / 2
+  const vertical = Math.abs(cx - midX) <= symmetrySnap
+  const horizontal = Math.abs(cy - midY) <= symmetrySnap
+  return {
+    cx: vertical ? midX : cx,
+    cy: horizontal ? midY : cy,
+    guides: { vertical, horizontal },
+  }
 }

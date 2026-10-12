@@ -10,7 +10,9 @@ import {
 import {
   applyCardTransform,
   borderFor,
+  cardCorners,
   hasDropShadow,
+  rotationHandle,
   type Placement,
 } from "@/lib/composition"
 
@@ -19,9 +21,16 @@ export type Overlay = {
   /** Slots that cross the margin on a side the template doesn't allow. */
   violatingSlots: Set<number>
   showMarginGuide: boolean
+  /** Center lines the dragged card is snapped to. */
+  symmetry: { vertical: boolean; horizontal: boolean }
+  /** Canvas px per on-screen CSS px, so handles keep a constant screen size. */
+  pxPerCss: number
   /** UI token colors, read from CSS variables by the caller. */
-  colors: { selection: string; warning: string; guide: string }
+  colors: { selection: string; warning: string; guide: string; handleFill: string }
 }
+
+/** On-screen sizes (CSS px) of the selection chrome. */
+export const handleMetrics = { radius: 6, stroke: 2, rotationDistance: 28 }
 
 function cardPath(context: CanvasRenderingContext2D, inflate = 0) {
   context.beginPath()
@@ -161,6 +170,8 @@ function drawOverlay(
   placements: Placement[],
   overlay: Overlay,
 ) {
+  const px = overlay.pxPerCss
+
   const outline = (placement: Placement, color: string, width: number) => {
     context.save()
     applyCardTransform(context, placement)
@@ -171,6 +182,16 @@ function drawOverlay(
     context.restore()
   }
 
+  const handle = (point: { x: number; y: number }) => {
+    context.beginPath()
+    context.arc(point.x, point.y, handleMetrics.radius * px, 0, Math.PI * 2)
+    context.fillStyle = overlay.colors.handleFill
+    context.fill()
+    context.lineWidth = handleMetrics.stroke * px
+    context.strokeStyle = overlay.colors.selection
+    context.stroke()
+  }
+
   if (overlay.showMarginGuide || overlay.violatingSlots.size > 0) {
     const margin = canvas.margin
     context.save()
@@ -178,24 +199,49 @@ function drawOverlay(
     context.lineWidth = 3
     context.strokeStyle =
       overlay.violatingSlots.size > 0 ? overlay.colors.warning : overlay.colors.guide
-    context.strokeRect(
-      margin,
-      margin,
-      canvas.width - margin * 2,
-      canvas.height - margin * 2,
-    )
+    context.strokeRect(margin, margin, canvas.width - margin * 2, canvas.height - margin * 2)
     context.restore()
   }
+
+  // Symmetry lines: the canvas's center lines while a card is snapped to them.
+  context.save()
+  context.strokeStyle = overlay.colors.selection
+  context.lineWidth = handleMetrics.stroke * px
+  if (overlay.symmetry.vertical) {
+    context.beginPath()
+    context.moveTo(canvas.width / 2, 0)
+    context.lineTo(canvas.width / 2, canvas.height)
+    context.stroke()
+  }
+  if (overlay.symmetry.horizontal) {
+    context.beginPath()
+    context.moveTo(0, canvas.height / 2)
+    context.lineTo(canvas.width, canvas.height / 2)
+    context.stroke()
+  }
+  context.restore()
 
   for (const placement of placements) {
     if (overlay.violatingSlots.has(placement.slot)) {
       outline(placement, overlay.colors.warning, 6)
     }
   }
-  const selected = placements.find(
-    (placement) => placement.slot === overlay.selectedSlot,
-  )
-  if (selected && !overlay.violatingSlots.has(selected.slot)) {
-    outline(selected, overlay.colors.selection, 6)
+
+  const selected = placements.find((placement) => placement.slot === overlay.selectedSlot)
+  if (!selected) return
+  if (!overlay.violatingSlots.has(selected.slot)) {
+    outline(selected, overlay.colors.selection, handleMetrics.stroke * px)
   }
+  // Rotation handle on a stem above the top edge, then the four corner handles.
+  const { anchor, handle: top } = rotationHandle(selected, handleMetrics.rotationDistance * px)
+  context.save()
+  context.beginPath()
+  context.moveTo(anchor.x, anchor.y)
+  context.lineTo(top.x, top.y)
+  context.strokeStyle = overlay.colors.selection
+  context.lineWidth = handleMetrics.stroke * px
+  context.stroke()
+  handle(top)
+  cardCorners(selected).forEach(handle)
+  context.restore()
 }

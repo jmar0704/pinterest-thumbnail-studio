@@ -25,6 +25,12 @@ Work from top to bottom, one item per task. Items marked **Decision needed** req
 - **Selection and the Empty State (2026-10-08):** no frame is selected at first. Clicking a frame (canvas or chip) selects it, and clicking empty canvas clears the selection. With nothing selected, the Style panel says "Select a frame to style it" and the per-frame image buttons hide. The Empty State's frames can be selected, dragged (within the 48px margin) and styled; Scatter still only applies to templates.
 - **Drop shadow hint:** with no frame selected, pressing the Drop shadow switch opens a Gestalt Popover above it reading "Select a frame to activate drop shadow" (info icon, no button). It closes on outside click or Escape.
 - **Spare chips are drag-only:** tapping a spare does nothing; drag it onto a frame to use it.
+- **Canvas editing (2026-10-12):**
+  - Symmetry lines: while dragging, a frame's center snaps to the canvas's vertical and/or horizontal center line within 12 canvas px, and the snapped line is drawn in the focus color. The margin rule still wins.
+  - Selection follows the reference, in the semantic focus blue: outline, four corner handles and a rotation handle on a stem. Corners resize and the top handle rotates, both snapping to the Size (S–XL) and Rotate (−10° to +10°) steps. Cursors change over handles.
+  - A floating dark pill toolbar sits under the selected frame (inside the canvas if the frame runs off it), with Delete image (the frame stays), Replace/Add image and Reset frame. Each has a tooltip, a 160ms light-fill hover and a focus-ring pressed state. The matching right-sidebar buttons are gone; Reset all stays there.
+  - Template settings removed: no folder view, Scatter, Shuffle, Reset all positions or Copy recipe. Picking a template just applies it. Tiles have a secondary fill, the secondary-weak fill on hover, selected-base when chosen (selected-strong on hover), and TapArea's compress when pressed.
+  - The Preview modal has no heading or sub-heading. The Preview button sits 24px below the canvas.
 - **Layout pass (2026-10-08):**
   - Headings are sentence case ("Blog header format: 1600 × 900 pixels", "Background", "Templates", "Frames", "Style").
   - Left sidebar, top to bottom: format, Add images, Background (swatches without row labels or center dots) with the Drop shadow switch, Templates. "Pick a template to open its settings." sits right under the Templates heading.
@@ -65,7 +71,7 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - `opacity={0.5}` on the disabled Style panel and Scatter control. The opacity scale is 0.04 / 0.2 / 0.4 / 0.8 / 0.9.
 - Layout breakpoint `1100px` and the stacked stage height `70vh` in `index.css`.
 - Canvas-space drawing values (margin guide dash 16/12, guide and outline widths 3 and 6). These are artwork-scale numbers, not UI spacing.
-- Motion: Gestalt has no duration or easing tokens, so the template-open transition uses 280ms with `cubic-bezier(0.2, 0, 0, 1)` and the step-control hover uses 160ms ease-out (both in `index.css`).
+- Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
 ## Next

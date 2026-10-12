@@ -7,6 +7,10 @@ export const sizes = {
   dragGhostWidth: 64,
   dragGhostHeight: 80,
   swatchLarge: 32,
+  /** Icon buttons in the floating frame toolbar. */
+  toolbarButton: 48,
+  /** Gap between the selected frame and its floating toolbar. */
+  toolbarOffset: 12,
   previewModalWidth: 1120,
 } as const
 
