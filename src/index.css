@@ -259,3 +259,19 @@ body {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Light color swatches: border-default ring (4.54:1 on white) instead of
+   border-container (1.59:1), so they're distinguishable (WCAG 1.4.11). */
+.swatch-ring-strong > div {
+  border-color: var(--color-border-default);
+}
+
+/*
+ * Gestalt 177's IconButton adds an unresolved CSS-module class while it has
+ * keyboard focus (i__imported_accessibilityOutlineFocus_N), so it never draws
+ * a focus ring (WCAG 2.4.7). Give that element the same 4px focus outline
+ * Gestalt's Button uses. Remove once Gestalt ships the class correctly.
+ */
+[class*="i__imported_accessibilityOutlineFocus"] {
+  outline: var(--space-100) solid var(--color-border-focus);
+}

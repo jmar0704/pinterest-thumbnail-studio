@@ -74,6 +74,27 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Accessibility (WCAG 2.2 AA audit, 2026-10-12)
+
+Audited with axe-core, a keyboard walk, dialog focus checks, reflow/zoom/text-spacing checks, token contrast and a manual review. Automated tools catch only part of the issues; this isn't a conformance claim.
+
+Fixed:
+- Frames move without dragging: arrow keys (Shift for 48px) on the canvas, tiles or toolbar, plus a Move mode in the frame toolbar (2.1.1, 2.5.7).
+- Images swap without dragging: a "Swap image with…" menu on every frame and spare tile (2.5.7).
+- Selection outline and handles in solid `--color-icon-info` over a white halo (1.4.11).
+- Template frame counts use the default text color (1.4.3).
+- Light color swatches get a `--color-border-default` ring (1.4.11).
+- Drop shadow hint announced through the status live region, tooltip role, and focus returns to the switch (4.1.3, 2.4.3).
+- Style toggle named "Expand/Collapse style" (2.5.3); section titles exposed as headings (1.3.1); `main` landmark and labelled sidebars; header wraps at 320px (1.4.10).
+- A hidden-until-focused "Frame N actions" button jumps from the tiles to the frame toolbar; Escape returns (2.4.3).
+- Gestalt 177's IconButton never draws its focus ring (an unresolved `i__imported_accessibilityOutlineFocus` class); `index.css` restores Gestalt's 4px focus outline on that class (2.4.7). Remove when Gestalt fixes it.
+
+Still open (best practice, not failures):
+- Selected states are written into accessible names ("…, selected") instead of `aria-pressed`.
+- 19 color swatches are 19 tab stops; a radio group with arrow keys would be faster.
+- Status messages clear after 4 seconds (they're announced, but slow readers may miss them on screen).
+- Not checked: real screen readers (VoiceOver, NVDA, mobile), touch-only use, Gestalt's internal tooltip wrappers (axe "needs review").
+
 ## Next
 
 - Keyboard access for spare chips: they move only by dragging today (frame chips also support Alt+←/→).

@@ -14,21 +14,35 @@ function Swatch({
   const size = selected ? sizes.swatchLarge - 8 : sizes.swatchLarge
   return (
     <TapArea
-      accessibilityLabel={`${colors.name} background with paired drop shadow${selected ? ", selected" : ""}`}
+      accessibilityLabel={`${colors.name} background with paired drop shadow${
+        selected ? ", selected" : ""
+      }`}
       onTap={onSelect}
       role="button"
       rounding="circle"
       tapStyle="compress"
     >
-      {/* Ring: a gap in the page color, then a selected-color outline. */}
-      <Box borderStyle={selected ? "lg" : "sm"} padding={selected ? 1 : 0} rounding="circle">
+      {/* Ring: a gap in the page color, then a selected-color outline. Light
+          swatches get a stronger ring so they stand out from the white panel
+          (WCAG 1.4.11); see .swatch-ring-strong in index.css. */}
+      <div
+        className={colors.tone === "light" ? "swatch-ring-strong" : undefined}
+      >
         <Box
-          dangerouslySetInlineStyle={{ __style: { backgroundColor: colors.background } }}
-          height={size}
+          borderStyle={selected ? "lg" : "sm"}
+          padding={selected ? 1 : 0}
           rounding="circle"
-          width={size}
-        />
-      </Box>
+        >
+          <Box
+            dangerouslySetInlineStyle={{
+              __style: { backgroundColor: colors.background },
+            }}
+            height={size}
+            rounding="circle"
+            width={size}
+          />
+        </Box>
+      </div>
     </TapArea>
   )
 }
@@ -48,8 +62,14 @@ export default function ColorTemplatePicker({
 }) {
   const current = templates.find((template) => template.id === value)
   const rows = [
-    { label: "Light", items: templates.filter((template) => template.tone === "light") },
-    { label: "Deep", items: templates.filter((template) => template.tone === "deep") },
+    {
+      label: "Light",
+      items: templates.filter((template) => template.tone === "light"),
+    },
+    {
+      label: "Deep",
+      items: templates.filter((template) => template.tone === "deep"),
+    },
   ]
   return (
     <Flex direction="column" gap={3}>
