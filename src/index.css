@@ -249,3 +249,13 @@ body {
     transition: none;
   }
 }
+
+/* Off-screen until it (or something inside it) gets keyboard focus. */
+.visually-hidden-focusable:not(:focus-within) {
+  position: absolute;
+  width: var(--space-100);
+  height: var(--space-100);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

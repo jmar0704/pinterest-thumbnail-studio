@@ -76,6 +76,7 @@ export default function FrameToolbar({
   onDeleteImage,
   onReplaceImage,
   onResetFrame,
+  onExit,
 }: {
   slot: number
   hasImage: boolean
@@ -86,6 +87,8 @@ export default function FrameToolbar({
   onDeleteImage: () => void
   onReplaceImage: () => void
   onResetFrame: () => void
+  /** Escape outside Move mode: hand focus back (to the selected frame tile). */
+  onExit: () => void
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [moving, setMoving] = useState(false)
@@ -130,10 +133,10 @@ export default function FrameToolbar({
       aria-label={`Frame ${slot + 1} actions`}
       className="frame-toolbar"
       onKeyDown={(event) => {
-        if (moving && event.key === "Escape") {
-          event.stopPropagation()
-          switchMode(false)
-        }
+        if (event.key !== "Escape") return
+        event.stopPropagation()
+        if (moving) switchMode(false)
+        else onExit()
       }}
       ref={rootRef}
       role="toolbar"

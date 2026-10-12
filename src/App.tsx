@@ -638,6 +638,15 @@ function App() {
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [])
 
+  // Keyboard bridge between the frame tiles (right sidebar) and the frame
+  // toolbar (on the canvas), which sit far apart in tab order.
+  const focusFrameToolbar = () =>
+    document.querySelector<HTMLElement>("[role='toolbar'] [role='button']")?.focus()
+  const focusFrameTile = (frame: number) =>
+    document
+      .querySelector<HTMLElement>(`[data-frame-slot="${frame}"] [role='button']`)
+      ?.focus()
+
   /** The thumbnail as exported: no guides, no selection outline. */
   const renderThumbnail = () => {
     const output = document.createElement("canvas")
@@ -884,6 +893,7 @@ function App() {
                           onDeleteImage={deleteImage}
                           onNudge={nudge}
                           onReplaceImage={replaceImage}
+                          onExit={() => focusFrameTile(slot)}
                           onResetFrame={resetFrame}
                           slot={slot}
                         />
@@ -921,6 +931,18 @@ function App() {
                   spareSlots={spareSlots}
                   warningSlots={violatingSlots}
                 />
+                {slot !== null ? (
+                  // Hidden until focused: lets keyboard users jump to the toolbar.
+                  <div className="visually-hidden-focusable">
+                    <Button
+                      fullWidth
+                      iconStart="arrow-forward"
+                      onClick={focusFrameToolbar}
+                      size="sm"
+                      text={`Frame ${slot + 1} actions`}
+                    />
+                  </div>
+                ) : null}
                 <Button
                   disabled={!canResetAll}
                   fullWidth
