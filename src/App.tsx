@@ -237,7 +237,10 @@ function App() {
         symmetry,
         pxPerCss,
         colors: {
-          selection: readToken("--color-border-focus"),
+          // Solid info blue (4.8:1 on white) plus a white halo: WCAG 1.4.11
+          // on light and deep backgrounds alike.
+          selection: readToken("--color-icon-info"),
+          halo: readToken("--color-background-default"),
           warning: readToken("--color-icon-warning"),
           guide: readToken("--color-border-default"),
           handleFill: readToken("--color-background-default"),

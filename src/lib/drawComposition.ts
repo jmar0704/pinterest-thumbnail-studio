@@ -26,11 +26,18 @@ export type Overlay = {
   /** Canvas px per on-screen CSS px, so handles keep a constant screen size. */
   pxPerCss: number
   /** UI token colors, read from CSS variables by the caller. */
-  colors: { selection: string; warning: string; guide: string; handleFill: string }
+  colors: {
+    selection: string
+    /** Drawn under selection lines so they read on light and deep backgrounds. */
+    halo: string
+    warning: string
+    guide: string
+    handleFill: string
+  }
 }
 
 /** On-screen sizes (CSS px) of the selection chrome. */
-export const handleMetrics = { radius: 6, stroke: 2, rotationDistance: 28 }
+export const handleMetrics = { radius: 6, stroke: 2, halo: 2, rotationDistance: 28 }
 
 function cardPath(context: CanvasRenderingContext2D, inflate = 0) {
   context.beginPath()
@@ -184,6 +191,16 @@ function drawOverlay(
 
   const handle = (point: { x: number; y: number }) => {
     context.beginPath()
+    context.arc(
+      point.x,
+      point.y,
+      (handleMetrics.radius + handleMetrics.stroke / 2 + handleMetrics.halo) * px,
+      0,
+      Math.PI * 2,
+    )
+    context.fillStyle = overlay.colors.halo
+    context.fill()
+    context.beginPath()
     context.arc(point.x, point.y, handleMetrics.radius * px, 0, Math.PI * 2)
     context.fillStyle = overlay.colors.handleFill
     context.fill()
@@ -203,23 +220,28 @@ function drawOverlay(
     context.restore()
   }
 
+  /** A selection-colored line with a halo underneath. */
+  const line = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+    for (const [color, width] of [
+      [overlay.colors.halo, handleMetrics.stroke + handleMetrics.halo * 2],
+      [overlay.colors.selection, handleMetrics.stroke],
+    ] as const) {
+      context.beginPath()
+      context.moveTo(from.x, from.y)
+      context.lineTo(to.x, to.y)
+      context.strokeStyle = color
+      context.lineWidth = width * px
+      context.stroke()
+    }
+  }
+
   // Symmetry lines: the canvas's center lines while a card is snapped to them.
-  context.save()
-  context.strokeStyle = overlay.colors.selection
-  context.lineWidth = handleMetrics.stroke * px
   if (overlay.symmetry.vertical) {
-    context.beginPath()
-    context.moveTo(canvas.width / 2, 0)
-    context.lineTo(canvas.width / 2, canvas.height)
-    context.stroke()
+    line({ x: canvas.width / 2, y: 0 }, { x: canvas.width / 2, y: canvas.height })
   }
   if (overlay.symmetry.horizontal) {
-    context.beginPath()
-    context.moveTo(0, canvas.height / 2)
-    context.lineTo(canvas.width, canvas.height / 2)
-    context.stroke()
+    line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 })
   }
-  context.restore()
 
   for (const placement of placements) {
     if (overlay.violatingSlots.has(placement.slot)) {
@@ -230,17 +252,13 @@ function drawOverlay(
   const selected = placements.find((placement) => placement.slot === overlay.selectedSlot)
   if (!selected) return
   if (!overlay.violatingSlots.has(selected.slot)) {
+    outline(selected, overlay.colors.halo, (handleMetrics.stroke + handleMetrics.halo * 2) * px)
     outline(selected, overlay.colors.selection, handleMetrics.stroke * px)
   }
   // Rotation handle on a stem above the top edge, then the four corner handles.
   const { anchor, handle: top } = rotationHandle(selected, handleMetrics.rotationDistance * px)
   context.save()
-  context.beginPath()
-  context.moveTo(anchor.x, anchor.y)
-  context.lineTo(top.x, top.y)
-  context.strokeStyle = overlay.colors.selection
-  context.lineWidth = handleMetrics.stroke * px
-  context.stroke()
+  line(anchor, top)
   handle(top)
   cardCorners(selected).forEach(handle)
   context.restore()
