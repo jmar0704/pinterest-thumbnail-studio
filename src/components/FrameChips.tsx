@@ -1,5 +1,6 @@
 import { useRef, useState } from "react"
 import { Box, Icon, TapArea, Text } from "gestalt"
+import SwapImageMenu from "@/components/SwapImageMenu"
 import { iconSizes, sizes } from "@/theme/sizes"
 
 type Drag = {
@@ -25,6 +26,9 @@ function ChipFace({ src }: { src: string | undefined }) {
  *
  * Images that don't fit the layout (e.g. a 4th image in a 3-frame template)
  * follow as greyed "Spare" tiles. Drag one onto a frame to use it there.
+ *
+ * Every tile also has a "Swap image with…" menu, so swaps never require a
+ * drag (WCAG 2.5.7).
  */
 export default function FrameChips({
   count,
@@ -105,7 +109,7 @@ export default function FrameChips({
           const isSource = dragging?.from === slot
           const isTarget = dragging !== null && dragging.over === slot && !isSource
           return (
-            <Box column={4} key={slot} padding={1}>
+            <Box column={4} key={slot} padding={1} position="relative">
               <div
                 className={isTarget ? "frame-chip frame-chip-target" : "frame-chip"}
                 data-frame-slot={slot}
@@ -127,8 +131,8 @@ export default function FrameChips({
                 <TapArea
                   accessibilityLabel={
                     isSpare
-                      ? "Spare image, not in this layout. Drag it onto a frame to use it."
-                      : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${hasWarning ? ", crosses the margin" : ""}. Drag, or press Alt plus arrow keys, to swap images.`
+                      ? "Spare image, not in this layout. Drag it onto a frame, or use its swap menu."
+                      : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${hasWarning ? ", crosses the margin" : ""}`
                   }
                   onTap={() => {
                     // Spares only move by dragging; tapping them does nothing.
@@ -180,6 +184,20 @@ export default function FrameChips({
                   </Box>
                 </TapArea>
               </div>
+              {/* Outside the TapArea so it isn't a button inside a button. */}
+              <Box bottom margin={2} position="absolute" right>
+                <SwapImageMenu
+                  label={isSpare ? "the spare" : `frame ${slot + 1}`}
+                  onSwap={onSwap}
+                  slot={slot}
+                  targets={slots
+                    .filter((other) => other !== slot && !(isSpare && other >= count))
+                    .map((other) => ({
+                      slot: other,
+                      label: other >= count ? "Spare image" : `Frame ${other + 1}`,
+                    }))}
+                />
+              </Box>
             </Box>
           )
         })}
@@ -187,7 +205,7 @@ export default function FrameChips({
       {spareSlots.length ? (
         <Text color="subtle" size="100">
           {spareSlots.length === 1 ? "1 image doesn't" : `${spareSlots.length} images don't`} fit
-          this layout. Drag a spare onto a frame to use it.
+          this layout. Drag a spare onto a frame, or use its swap menu.
         </Text>
       ) : null}
 
