@@ -80,6 +80,8 @@ const maxFileBytes = 10 * 1024 * 1024
 const placeholderImageSrc = "/assets/580dc.svg"
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
 const noSymmetry = { vertical: false, horizontal: false }
+/** Keyboard and toolbar nudge distances, in canvas px (Shift = large). */
+const nudgeSteps = { small: 8, large: 48 }
 
 function readToken(name: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
@@ -562,6 +564,77 @@ function App() {
     announce(`Frame ${slot + 1} image deleted`)
   }
 
+  /**
+   * Move the selected frame by keyboard or the toolbar's nudge buttons, with
+   * the same margin limits as dragging. Snaps to a center line only while
+   * moving toward it, so a centered frame can still be nudged off center.
+   */
+  const nudge = (dx: number, dy: number) => {
+    if (slot === null || !selectedPlacement) return
+    const placement = selectedPlacement
+    const current = doc.offsets[slot]
+    const moved = clampOffset(
+      placement,
+      { x: current.x + dx, y: current.y + dy },
+      template.allowBleed,
+    )
+    const cx = placement.baseX + moved.x
+    const cy = placement.baseY + moved.y
+    const snapped = snapToSymmetry(cx, cy)
+    const midX = canvas.width / 2
+    const midY = canvas.height / 2
+    const towardX = Math.abs(cx - midX) < Math.abs(placement.cx - midX)
+    const towardY = Math.abs(cy - midY) < Math.abs(placement.cy - midY)
+    const next = clampOffset(
+      placement,
+      {
+        x: (snapped.guides.vertical && towardX ? midX : cx) - placement.baseX,
+        y: (snapped.guides.horizontal && towardY ? midY : cy) - placement.baseY,
+      },
+      template.allowBleed,
+    )
+    if (next.x === current.x && next.y === current.y) return
+    commit((state) => ({
+      ...state,
+      offsets: state.offsets.map((offset, index) => (index === slot ? next : offset)),
+    }))
+    const centeredX = placement.baseX + next.x === midX && placement.cx !== midX
+    const centeredY = placement.baseY + next.y === midY && placement.cy !== midY
+    if (centeredX || centeredY) {
+      announce(
+        `Frame ${slot + 1} centered ${centeredX && centeredY ? "on the canvas" : centeredX ? "horizontally" : "vertically"}`,
+      )
+    }
+  }
+
+  // Arrow keys nudge the selected frame (Shift for bigger steps) when focus is
+  // on the canvas, the frame tiles, the frame toolbar or nothing in particular.
+  const nudgeRef = useRef(nudge)
+  nudgeRef.current = nudge
+  useEffect(() => {
+    const steps: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      const step = steps[event.key]
+      if (!step || event.altKey || event.metaKey || event.ctrlKey) return
+      const target = event.target as HTMLElement | null
+      const onEditorSurface =
+        !target ||
+        target === document.body ||
+        target.closest("canvas.artboard, [data-frame-slot], [role='toolbar']") !== null
+      if (!onEditorSurface) return
+      event.preventDefault()
+      const distance = event.shiftKey ? nudgeSteps.large : nudgeSteps.small
+      nudgeRef.current(step[0] * distance, step[1] * distance)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
+
   /** The thumbnail as exported: no guides, no selection outline. */
   const renderThumbnail = () => {
     const output = document.createElement("canvas")
@@ -782,7 +855,7 @@ function App() {
                 <Flex.Item flex="grow" minWidth={0}>
                   <div className="artboard-frame">
                     <canvas
-                      aria-label={`Preview of the ${template.name} thumbnail. Drag a frame to move it; drag its corners to resize or its top handle to rotate.`}
+                      aria-label={`Preview of the ${template.name} thumbnail. Select a frame, then drag it or use the arrow keys to move it (Shift for bigger steps). Drag its corners to resize or its top handle to rotate.`}
                       className="artboard"
                       onPointerCancel={handlePointerUp}
                       onPointerDown={handlePointerDown}
@@ -793,6 +866,7 @@ function App() {
                       onPointerUp={handlePointerUp}
                       ref={canvasRef}
                       role="img"
+                      tabIndex={0}
                       style={{ cursor: gestureKind === "move" ? "grabbing" : hoverCursor }}
                     />
                     <Button color="white" iconStart="eye" onClick={openPreview} text="Preview" />
@@ -800,9 +874,12 @@ function App() {
                     {selectedPlacement && slot !== null && gestureKind === null ? (
                       <div className="frame-toolbar-anchor" style={toolbarPosition(selectedPlacement)}>
                         <FrameToolbar
+                          key={slot}
                           canReset={isFrameChanged}
                           hasImage={Boolean(doc.slotImages[slot])}
+                          nudgeStep={nudgeSteps.large}
                           onDeleteImage={deleteImage}
+                          onNudge={nudge}
                           onReplaceImage={replaceImage}
                           onResetFrame={resetFrame}
                           slot={slot}
