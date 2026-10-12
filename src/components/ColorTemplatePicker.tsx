@@ -54,9 +54,11 @@ export default function ColorTemplatePicker({
   return (
     <Flex direction="column" gap={3}>
       <Flex alignItems="baseline" gap={2}>
-        <Text size="200" weight="bold">
-          Background
-        </Text>
+        <div aria-level={2} role="heading">
+          <Text size="200" weight="bold">
+            Background
+          </Text>
+        </div>
         {current ? (
           <Text color="subtle" size="100">
             {current.name}

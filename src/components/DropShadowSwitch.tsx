@@ -2,6 +2,8 @@ import { useRef, useState } from "react"
 import { Box, Flex, Icon, Label, Popover, Switch, Text } from "gestalt"
 import { iconSizes } from "@/theme/sizes"
 
+const hint = "Select a frame to activate drop shadow"
+
 /**
  * Turns the color template's paired glow on or off for the selected frame.
  * Lives with the Background colors because the glow color comes from them.
@@ -12,10 +14,13 @@ export default function DropShadowSwitch({
   slot,
   switched,
   onChange,
+  onAnnounce,
 }: {
   slot: number | null
   switched: boolean
   onChange: (switched: boolean) => void
+  /** Sends the hint to the page's status live region for screen readers. */
+  onAnnounce: (message: string) => void
 }) {
   const anchorRef = useRef<HTMLDivElement>(null)
   const [showHint, setShowHint] = useState(false)
@@ -33,6 +38,7 @@ export default function DropShadowSwitch({
             event.preventDefault()
             event.stopPropagation()
             setShowHint(true)
+            onAnnounce(hint)
           }}
           ref={anchorRef}
         >
@@ -58,8 +64,12 @@ export default function DropShadowSwitch({
           accessibilityLabel="Drop shadow needs a frame"
           anchor={anchorRef.current}
           idealDirection="up"
-          onDismiss={() => setShowHint(false)}
-          role="dialog"
+          onDismiss={() => {
+            setShowHint(false)
+            // Keep keyboard users where they were.
+            document.getElementById("drop-shadow-switch")?.focus()
+          }}
+          role="tooltip"
           shouldFocus={false}
           size="flexible"
         >
@@ -71,7 +81,7 @@ export default function DropShadowSwitch({
                 icon="info-circle"
                 size={iconSizes.md}
               />
-              <Text size="200">Select a frame to activate drop shadow</Text>
+              <Text size="200">{hint}</Text>
             </Flex>
           </Box>
         </Popover>

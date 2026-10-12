@@ -77,6 +77,8 @@ export default function StylePanel({
 
   return (
     <Accordion.Expandable
+      accessibilityCollapseLabel="Collapse style"
+      accessibilityExpandLabel="Expand style"
       borderStyle="none"
       expandedIndex={expanded ? 0 : null}
       id="style-panel"

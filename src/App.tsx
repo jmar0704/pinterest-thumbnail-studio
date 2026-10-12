@@ -621,11 +621,12 @@ function App() {
     <DesignTokensProvider>
       <Box color="default" display="flex" direction="column" height="100vh">
         <Box as="header" borderStyle="sm" paddingX={5} paddingY={3}>
-          <Flex alignItems="center" justifyContent="between">
+          {/* Wraps on narrow screens so the header never scrolls sideways. */}
+          <Flex alignItems="center" gap={{ column: 2, row: 0 }} justifyContent="between" wrap>
             <Heading accessibilityLevel={1} size="400">
               Thumbnail Studio
             </Heading>
-            <Flex alignItems="center" gap={2}>
+            <Flex alignItems="center" gap={2} wrap>
               <Box aria-live="polite" marginEnd={2}>
                 <Text color="subtle" size="200">
                   {status}
@@ -675,11 +676,16 @@ function App() {
         >
           {/* Left: format, images, background, templates */}
           <div className="workspace-left">
-            <Box as="aside" borderStyle="sm" height="100%" overflow="scrollY" padding={4}>
+            <Box
+              aria-label="Images, colors and templates"
+              as="aside"
+              borderStyle="sm" height="100%" overflow="scrollY" padding={4}>
               <Flex direction="column" gap={5}>
-                <Text size="200" weight="bold">
-                  Blog header format: {canvas.width} × {canvas.height} pixels
-                </Text>
+                <div aria-level={2} role="heading">
+                  <Text size="200" weight="bold">
+                    Blog header format: {canvas.width} × {canvas.height} pixels
+                  </Text>
+                </div>
 
                 <TapArea
                   accessibilityLabel="Add images to empty frames"
@@ -723,6 +729,7 @@ function App() {
                   />
                   <DropShadowSwitch
                     onChange={(on) => updateStyle({ dropShadow: on ? 1 : 0 })}
+                    onAnnounce={announce}
                     slot={slot}
                     switched={doc.styles[activeSlot].dropShadow === 1}
                   />
@@ -732,9 +739,11 @@ function App() {
 
                 <Flex direction="column" gap={3}>
                   <Flex alignItems="center" justifyContent="between">
-                    <Text size="200" weight="bold">
-                      Templates
-                    </Text>
+                    <div aria-level={2} role="heading">
+                      <Text size="200" weight="bold">
+                        Templates
+                      </Text>
+                    </div>
                     {!isEmptyState ? (
                       <Button
                         color="transparent"
@@ -759,7 +768,7 @@ function App() {
           </div>
 
           {/* Center: artboard, frame toolbar and preview */}
-          <div className="workspace-stage">
+          <main className="workspace-stage">
             <Box color="secondary" display="flex" height="100%" padding={6}>
               <Flex direction="column" flex="grow" gap={4} minWidth={0}>
                 {violatingSlots.size > 0 ? (
@@ -804,16 +813,21 @@ function App() {
                 </Flex.Item>
               </Flex>
             </Box>
-          </div>
+          </main>
 
           {/* Right: frames and per-frame style */}
           <div className="workspace-right">
-            <Box as="aside" borderStyle="sm" height="100%" overflow="scrollY" padding={4}>
+            <Box
+              aria-label="Frames and style"
+              as="aside"
+              borderStyle="sm" height="100%" overflow="scrollY" padding={4}>
               <Flex direction="column" gap={3}>
                 <Flex alignItems="center" justifyContent="between">
-                  <Text size="200" weight="bold">
-                    Frames
-                  </Text>
+                  <div aria-level={2} role="heading">
+                    <Text size="200" weight="bold">
+                      Frames
+                    </Text>
+                  </div>
                   <Text color="subtle" size="100">
                     {isEmptyState ? `${cardCount} placeholders` : `${template.name} · ${cardCount}`}
                   </Text>
