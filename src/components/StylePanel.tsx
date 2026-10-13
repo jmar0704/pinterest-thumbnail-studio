@@ -1,4 +1,4 @@
-import { Accordion, Box, Flex, Icon, Text } from "gestalt"
+import { Accordion, Box, Button, Flex, Icon, Text } from "gestalt"
 import StepControl from "@/components/StepControl"
 import {
   borderSteps,
@@ -32,6 +32,8 @@ export default function StylePanel({
   expanded,
   onExpandedChange,
   onChange,
+  onApplyBorderToAll,
+  borderMatchesAllFrames,
 }: {
   enabled: boolean
   slot: number
@@ -39,6 +41,9 @@ export default function StylePanel({
   expanded: boolean
   onExpandedChange: (expanded: boolean) => void
   onChange: (update: Partial<CardStyle>) => void
+  /** Copies the selected frame's border to every frame. */
+  onApplyBorderToAll: () => void
+  borderMatchesAllFrames: boolean
 }) {
   const content = (
     <Flex direction="column" gap={4}>
@@ -62,6 +67,18 @@ export default function StylePanel({
             {controls.map((control) => (
               <StepControl
                 defaultValue={defaultCardStyle[control.key]}
+                action={
+                  control.key === "border" ? (
+                    <Button
+                      accessibilityLabel="Apply this border to all frames"
+                      color="transparent"
+                      disabled={borderMatchesAllFrames}
+                      onClick={onApplyBorderToAll}
+                      size="sm"
+                      text="Apply to all"
+                    />
+                  ) : undefined
+                }
                 key={control.key}
                 label={control.label}
                 onChange={(index) => onChange({ [control.key]: index })}

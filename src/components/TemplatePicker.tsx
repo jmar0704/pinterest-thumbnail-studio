@@ -38,7 +38,7 @@ export default function TemplatePicker({
                       {template.name}
                     </Text>
                     {/* Not "subtle": text-subtle on the gray tile is only 3.74:1 (WCAG 1.4.3). */}
-                    <Text color={selected ? "inverse" : "default"} size="100">
+                    <Text color={selected ? "inverse" : "default"} size="200">
                       {template.cards.length} frames
                     </Text>
                   </Flex>

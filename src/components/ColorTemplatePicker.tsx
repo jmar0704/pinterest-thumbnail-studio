@@ -80,7 +80,7 @@ export default function ColorTemplatePicker({
           </Text>
         </div>
         {current ? (
-          <Text color="subtle" size="100">
+          <Text color="subtle" size="200">
             {current.name}
           </Text>
         ) : null}

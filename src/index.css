@@ -302,11 +302,11 @@ body {
   white-space: nowrap;
 }
 
-/* Low edge contrast marker over an image (DOM only; never in the export). */
-.edge-contrast-marker {
-  position: absolute;
-  z-index: 1;
-  transform: translate(-50%, -50%);
-  border-radius: var(--rounding-pill);
-  box-shadow: var(--elevation-floating);
+/* Confirmation toasts sit centered near the bottom of the window. */
+.toast-anchor {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-800);
+  transform: translateX(-50%);
+  z-index: 10;
 }

@@ -23,10 +23,10 @@ function inkFor(colors: ColorTemplate, alpha: number) {
   return withAlpha(colors.shadow, alpha)
 }
 
-/** Ring sizes: the innermost ring's half-height, and width-to-height ratio. */
-const ringBase = { radiusY: 220, aspect: 1.45, lineWidth: 4, dash: [20, 16] }
+/** Ring sizes: the innermost ring's radius. Rings are true circles. */
+const ringBase = { radius: 220, lineWidth: 4, dash: [20, 16] }
 
-/** Concentric dashed ellipses centered on the canvas. */
+/** Concentric dashed circles centered on the canvas. */
 function drawRings(context: CanvasRenderingContext2D, colors: ColorTemplate, style: BackgroundStyle) {
   const count = ringCountSteps[style.rings].value
   const gap = ringGapSteps[style.gap].value
@@ -36,23 +36,15 @@ function drawRings(context: CanvasRenderingContext2D, colors: ColorTemplate, sty
   context.setLineDash(ringBase.dash)
   context.lineCap = "round"
   for (let ring = 0; ring < count; ring += 1) {
-    const radiusY = ringBase.radiusY + ring * gap
+    const radius = ringBase.radius + ring * gap
     context.beginPath()
-    context.ellipse(
-      canvas.width / 2,
-      canvas.height / 2,
-      radiusY * ringBase.aspect,
-      radiusY,
-      0,
-      0,
-      Math.PI * 2,
-    )
+    context.arc(canvas.width / 2, canvas.height / 2, radius, 0, Math.PI * 2)
     context.stroke()
   }
   context.restore()
 }
 
-const rippleCache = new Map<string, HTMLCanvasElement>()
+const fractalCache = new Map<string, HTMLCanvasElement>()
 
 function makeCanvas() {
   const layer = document.createElement("canvas")
@@ -62,19 +54,25 @@ function makeCanvas() {
 }
 
 /**
- * The color fields the ribs bend: a deep side and a light side with a soft
- * boundary down the middle (that boundary is what reads as the ripple), plus
- * a couple of pools so the surface isn't flat.
+ * The color fields the ribs bend. The chosen background color dominates;
+ * its paired color only accents it, plus a shade and a highlight. So a
+ * light background stays light (Red light reads pink) and a deep one stays
+ * deep (Red deep reads dark red). The soft boundary down the middle is what
+ * reads as the ripple once the ribs bend it.
  */
 function paintColorFields(context: CanvasRenderingContext2D, colors: ColorTemplate) {
   const { width, height } = canvas
+  const light = colors.tone === "light"
+  const accent = inkFor(colors, light ? 0.38 : 0.3)
+  const shade = withAlpha(ribShade, light ? 0.1 : 0.38)
+  const highlight = withAlpha(ribHighlight, light ? 0.6 : 0.14)
+
   context.fillStyle = colors.background
   context.fillRect(0, 0, width, height)
 
-  const split = context.createLinearGradient(width * 0.3, 0, width * 0.6, 0)
-  split.addColorStop(0, inkFor(colors, 0.9))
-  split.addColorStop(0.55, inkFor(colors, 0.55))
-  split.addColorStop(1, inkFor(colors, 0))
+  const split = context.createLinearGradient(width * 0.3, 0, width * 0.62, 0)
+  split.addColorStop(0, accent)
+  split.addColorStop(1, withAlpha(colors.background, 0))
   context.fillStyle = split
   context.fillRect(0, 0, width, height)
 
@@ -85,9 +83,9 @@ function paintColorFields(context: CanvasRenderingContext2D, colors: ColorTempla
     context.fillStyle = gradient
     context.fillRect(0, 0, width, height)
   }
-  pool(width * 0.15, height * 0.1, width * 0.3, withAlpha(colors.background, 0.7))
-  pool(width * 0.8, height * 0.45, width * 0.35, withAlpha(colors.background, 0.9))
-  pool(width * 0.85, height * 0.95, width * 0.3, inkFor(colors, 0.7))
+  pool(width * 0.2, height * 0.75, width * 0.4, shade)
+  pool(width * 0.78, height * 0.35, width * 0.4, highlight)
+  pool(width * 0.9, height * 0.95, width * 0.3, accent)
 }
 
 /**
@@ -95,11 +93,11 @@ function paintColorFields(context: CanvasRenderingContext2D, colors: ColorTempla
  * slightly wider strip of the fields squeezed into its width (refraction),
  * shifted sideways along a wave, then gets a highlight-to-shade sheen.
  */
-function renderRipples(colors: ColorTemplate, style: BackgroundStyle) {
+function renderFractal(colors: ColorTemplate, style: BackgroundStyle) {
   const ribs = ribSteps[style.ribs].value
   const wave = waveSteps[style.wave].value
   const key = [colors.id, ribs, wave].join("|")
-  const cached = rippleCache.get(key)
+  const cached = fractalCache.get(key)
   if (cached) return cached
 
   const fields = makeCanvas()
@@ -135,7 +133,7 @@ function renderRipples(colors: ColorTemplate, style: BackgroundStyle) {
     context.fillStyle = sheen
     context.fillRect(x, 0, ribWidth + 0.5, height)
   }
-  rippleCache.set(key, output)
+  fractalCache.set(key, output)
   return output
 }
 
@@ -147,5 +145,5 @@ export function drawBackgroundPattern(
 ) {
   const pattern = patternSteps[style.pattern].value
   if (pattern === "rings") drawRings(context, colors, style)
-  if (pattern === "ripples") context.drawImage(renderRipples(colors, style), 0, 0)
+  if (pattern === "fractal") context.drawImage(renderFractal(colors, style), 0, 0)
 }

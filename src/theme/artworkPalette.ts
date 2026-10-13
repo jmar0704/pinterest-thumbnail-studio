@@ -70,7 +70,7 @@ export const placeholderFill = "#fff7f7"
 /** Backing fill drawn behind a loaded image (visible only at the rounded edges). */
 export const imageBackingFill = "#f1f0eb"
 
-/** Sheen on each fluted-glass rib in the Ripples background (used with withAlpha). */
+/** Sheen on each fluted-glass rib in the Fractal background (used with withAlpha). */
 export const ribHighlight = "#ffffff"
 export const ribShade = "#000000"
 

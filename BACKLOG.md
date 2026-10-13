@@ -74,9 +74,18 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Edits (2026-10-13, second pass)
+
+- Low edge contrast: no marker on the canvas. Flagged images get a warning icon on their frame tile (Frames panel) and a low-opacity warning tint (`--color-background-warning-base`, preview only, never exported). The notice is built from Gestalt primitives with the icon beside its title, and always offers two full-width medium buttons that match Export: Lighten or Darken background (by whether the image edges are darker or lighter than the background; disabled when no such color exists) and Add outline. Add outline gives every frame without a border a Thin border and shows a Gestalt Toast: "Outline added to all frames to maintain consistency".
+- Clicking empty space in the center stage (outside the canvas) clears the frame selection; sidebars and the header don't.
+- Border has an "Apply to all" button that copies the selected frame's border to every frame (toast confirms).
+- Rings are true circles. "Ripples" is now "Fractal", and it's dominated by the chosen background color (its pair only accents it), so light and deep versions of a hue look clearly different.
+- Export button reads "Export", with no icon.
+- Regular-weight 12px text is now 14px, matching "No frame selected" (the bold frame-number badges stay 12px). Headings are sentence case; "Thumbnail Studio" is the product name.
+
 ## Low edge contrast warning (2026-10-13)
 
-A design-quality check, not a compliance claim (photos are exempt from WCAG 1.4.11). For each image, the visible outer edge (the drawn cover crop, minus rounded corners; or the border color when a frame border is drawn) is compared per side with the background just outside it, sampled from a background-only render (color + pattern) re-projected into the card's own space, so rotation, 3D tilt and size are accounted for. Below 2:1 on any side warns: a small marker on the image (DOM, never in the export) and a Gestalt BannerCallout (`type="warning"`, not aria-live) for the selected frame. Fixes reuse existing controls: Add outline (Thin border, when there's no border) and Lighten/Darken background (the same hue's other tone, or White / Gray deep, offered only when its plain fill would clear 2:1). Dismissal is per image + background. Re-checks are debounced 150ms after changes and sample at about 96px.
+A design-quality check, not a compliance claim (photos are exempt from WCAG 1.4.11). For each image, the visible outer edge (the drawn cover crop, minus rounded corners; or the border color when a frame border is drawn) is compared per side with the background just outside it, sampled from a background-only render (color + pattern) re-projected into the card's own space, so rotation, 3D tilt and size are accounted for. Below 2:1 on any side warns: a warning on the image (see the second pass below) and a notice for the selected frame (not aria-live). Fixes reuse existing controls: Add outline and Lighten/Darken background (the same hue's other tone, or White / Gray deep). Dismissal is per image + background. Re-checks are debounced 150ms after changes and sample at about 96px.
 
 Known limitation: transparent PNGs and cutouts. Mostly transparent sides are skipped, because the visible edge is the subject's silhouette, which isn't judged yet.
 

@@ -4,12 +4,12 @@ import type { Step } from "@/data/styleOptions"
 // stepped, so nobody can push a pattern to an extreme. Their colors come from
 // the chosen color template (see drawBackground.ts).
 
-export type PatternKind = "none" | "rings" | "ripples"
+export type PatternKind = "none" | "rings" | "fractal"
 
 export const patternSteps: Step<PatternKind>[] = [
   { label: "None", value: "none", description: "Plain background" },
-  { label: "Rings", value: "rings", description: "Dashed elliptical rings" },
-  { label: "Ripples", value: "ripples", description: "Fluted-glass ripples" },
+  { label: "Rings", value: "rings", description: "Dashed circular rings" },
+  { label: "Fractal", value: "fractal", description: "Fluted-glass fractal" },
 ]
 
 /** How many dashed rings. */
@@ -19,7 +19,7 @@ export const ringCountSteps: Step<number>[] = [1, 2, 3, 4, 5].map((count) => ({
   description: count === 1 ? "1 ring" : `${count} rings`,
 }))
 
-/** Space between rings, in canvas px (measured on the short axis). */
+/** Space between rings, in canvas px. */
 export const ringGapSteps: Step<number>[] = [
   { label: "Tight", value: 72, description: "Rings close together" },
   { label: "Medium", value: 120, description: "Even spacing" },

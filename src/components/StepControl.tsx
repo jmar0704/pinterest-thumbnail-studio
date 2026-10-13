@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Box, Flex, IconButton, SegmentedControl, Text } from "gestalt"
 import type { Step } from "@/data/styleOptions"
 
@@ -17,12 +18,15 @@ export default function StepControl<T>({
   value,
   defaultValue,
   onChange,
+  action,
 }: {
   label: string
   steps: Step<T>[]
   value: number
   defaultValue: number
   onChange: (index: number) => void
+  /** Extra control beside the heading, e.g. Border's "Apply to all". */
+  action?: ReactNode
 }) {
   const isDefault = value === defaultValue
   return (
@@ -31,17 +35,22 @@ export default function StepControl<T>({
         <Text size="200" weight="bold">
           {label}
         </Text>
-        {/* Reserve the reset button's space so rows don't jump. */}
-        <Box opacity={isDefault ? 0 : 1}>
-          <IconButton
-            accessibilityLabel={`Reset ${label.toLowerCase()}`}
-            disabled={isDefault}
-            icon="refresh"
-            onClick={() => onChange(defaultValue)}
-            size="xs"
-            tooltip={isDefault ? undefined : { text: `Reset ${label.toLowerCase()}` }}
-          />
-        </Box>
+        <Flex alignItems="center" gap={1}>
+          {action}
+          {/* Reserve the reset button's space so rows don't jump. */}
+          <Box opacity={isDefault ? 0 : 1}>
+            <IconButton
+              accessibilityLabel={`Reset ${label.toLowerCase()}`}
+              disabled={isDefault}
+              icon="refresh"
+              onClick={() => onChange(defaultValue)}
+              size="xs"
+              tooltip={
+                isDefault ? undefined : { text: `Reset ${label.toLowerCase()}` }
+              }
+            />
+          </Box>
+        </Flex>
       </Flex>
       <div className="step-control">
         <SegmentedControl

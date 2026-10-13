@@ -38,6 +38,7 @@ export default function FrameChips({
   onSelect,
   onSwap,
   spareSlots,
+  edgeWarningSlots,
 }: {
   count: number
   selected: number | null
@@ -46,6 +47,8 @@ export default function FrameChips({
   onSelect: (slot: number) => void
   onSwap: (from: number, to: number) => void
   spareSlots: number[]
+  /** Frames whose image edges blend into the background. */
+  edgeWarningSlots: Set<number>
 }) {
   const dragRef = useRef<Drag | null>(null)
   const suppressTapRef = useRef(false)
@@ -105,7 +108,9 @@ export default function FrameChips({
           const isSpare = slot >= count
           const src = imageForSlot(slot)
           const isSelected = !isSpare && slot === selected
-          const hasWarning = warningSlots.has(slot)
+          const crossesMargin = warningSlots.has(slot)
+          const blendsIn = edgeWarningSlots.has(slot)
+          const hasWarning = crossesMargin || blendsIn
           const isSource = dragging?.from === slot
           const isTarget = dragging !== null && dragging.over === slot && !isSource
           return (
@@ -132,7 +137,7 @@ export default function FrameChips({
                   accessibilityLabel={
                     isSpare
                       ? "Spare image, not in this layout. Drag it onto a frame, or use its swap menu."
-                      : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${hasWarning ? ", crosses the margin" : ""}`
+                      : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${crossesMargin ? ", crosses the margin" : ""}${blendsIn ? ", image edges may blend into the background" : ""}`
                   }
                   onTap={() => {
                     // Spares only move by dragging; tapping them does nothing.
@@ -203,7 +208,7 @@ export default function FrameChips({
         })}
       </Box>
       {spareSlots.length ? (
-        <Text color="subtle" size="100">
+        <Text color="subtle" size="200">
           {spareSlots.length === 1 ? "1 image doesn't" : `${spareSlots.length} images don't`} fit
           this layout. Drag a spare onto a frame, or use its swap menu.
         </Text>

@@ -22,6 +22,8 @@ export type Overlay = {
   selectedSlot: number | null
   /** Slots that cross the margin on a side the template doesn't allow. */
   violatingSlots: Set<number>
+  /** Images whose edges blend into the background: tinted, preview only. */
+  tintSlots: Set<number>
   showMarginGuide: boolean
   /** Center lines the dragged card is snapped to. */
   symmetry: { vertical: boolean; horizontal: boolean }
@@ -35,6 +37,8 @@ export type Overlay = {
     warning: string
     guide: string
     handleFill: string
+    /** Low edge contrast tint. */
+    tint: string
   }
 }
 
@@ -269,6 +273,18 @@ function drawOverlay(
   }
   if (overlay.symmetry.horizontal) {
     line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 })
+  }
+
+  // Low edge contrast: a quiet warning tint over the image.
+  for (const placement of placements) {
+    if (!overlay.tintSlots.has(placement.slot)) continue
+    context.save()
+    applyCardTransform(context, placement)
+    cardPath(context)
+    context.globalAlpha = 0.24
+    context.fillStyle = overlay.colors.tint
+    context.fill()
+    context.restore()
   }
 
   for (const placement of placements) {

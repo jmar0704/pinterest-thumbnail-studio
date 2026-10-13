@@ -9,15 +9,16 @@ import {
   Heading,
   Icon,
   IconButton,
+  Layer,
   TapArea,
   Text,
+  Toast,
 } from "gestalt"
 import "gestalt/dist/gestalt.css"
 import BackgroundStylePanel from "@/components/BackgroundStylePanel"
 import BlogPreview from "@/components/BlogPreview"
 import ColorTemplatePicker from "@/components/ColorTemplatePicker"
 import DropShadowSwitch from "@/components/DropShadowSwitch"
-import EdgeContrastMarker from "@/components/EdgeContrastMarker"
 import EdgeContrastNotice from "@/components/EdgeContrastNotice"
 import FrameChips from "@/components/FrameChips"
 import FrameToolbar from "@/components/FrameToolbar"
@@ -25,7 +26,7 @@ import StylePanel from "@/components/StylePanel"
 import TemplatePicker from "@/components/TemplatePicker"
 import useEdgeContrastWarnings, { type EdgeCheckItem } from "@/hooks/useEdgeContrastWarnings"
 import useHistory from "@/hooks/useHistory"
-import { canvas, card, findTemplate, maxCards, templates } from "@/data/templates"
+import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
 import { defaultCardStyle, isDefaultStyle, type CardStyle } from "@/data/styleOptions"
 import {
   defaultBackgroundStyle,
@@ -44,7 +45,6 @@ import {
   rotationHandle,
   sizeStepFor,
   snapToSymmetry,
-  toCanvas,
   type Offset,
   type Placement,
 } from "@/lib/composition"
@@ -54,12 +54,7 @@ import {
   drawComposition,
   handleMetrics,
 } from "@/lib/drawComposition"
-import {
-  contrastRatio,
-  relativeLuminance,
-  WARN_RATIO,
-  type EdgeContrastResult,
-} from "@/lib/edgeContrast"
+import type { EdgeContrastResult } from "@/lib/edgeContrast"
 import {
   colorTemplates,
   findColorTemplate,
@@ -142,17 +137,16 @@ function revokeUnused(dropped: Doc[], retained: Doc[]) {
 }
 
 /**
- * An existing background color that would separate an image's weak edges
- * from the background: lighter when the edges are darker than the
- * background, darker when they're lighter. Same hue where possible (deep ↔
- * light), White or Gray deep otherwise. Only returned when the new color's
- * plain fill clears the warning threshold for every weak side.
+ * The background fix for an image whose edges blend in: lighten the
+ * background when the image's edges are darker than it, darken it when
+ * they're lighter. Uses an existing color: the same hue's other tone, or
+ * White / Gray deep. `id` is null when there's no such color to switch to.
  */
 function backgroundFixFor(result: EdgeContrastResult, current: ColorTemplate) {
   const weak = result.weakSides.flatMap((side) => result.sides[side] ?? [])
-  if (!weak.length) return null
-  const edge = weak.reduce((total, item) => total + item.edgeLuminance, 0) / weak.length
-  const background = weak.reduce((total, item) => total + item.backgroundLuminance, 0) / weak.length
+  const edge = weak.reduce((total, item) => total + item.edgeLuminance, 0) / Math.max(1, weak.length)
+  const background =
+    weak.reduce((total, item) => total + item.backgroundLuminance, 0) / Math.max(1, weak.length)
   const lighten = edge <= background
   const hue = current.id.replace(/-(light|deep)$/, "")
   const targetId = lighten
@@ -166,17 +160,13 @@ function backgroundFixFor(result: EdgeContrastResult, current: ColorTemplate) {
         ? "gray-deep"
         : `${hue}-deep`
       : null
-  const target = colorTemplates.find((item) => item.id === targetId)
-  if (!target) return null
-  const [r, g, b] = rgbOf(target.background)
-  const targetLuminance = relativeLuminance(r, g, b)
-  if (weak.some((item) => contrastRatio(item.edgeLuminance, targetLuminance) < WARN_RATIO)) {
-    return null
-  }
+  const target = colorTemplates.find((item) => item.id === targetId) ?? null
   return {
-    id: target.id,
+    id: target?.id ?? null,
     label: lighten ? "Lighten background" : "Darken background",
-    description: `Switch the background to ${target.name}`,
+    description: target
+      ? `Switch the background to ${target.name}`
+      : `There's no ${lighten ? "lighter" : "darker"} background color to switch to`,
   }
 }
 
@@ -198,6 +188,12 @@ function App() {
   /** Snapshot of the design shown in the blog preview, or null when closed. */
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewTitle, setPreviewTitle] = useState("")
+  const [toast, setToast] = useState<string | null>(null)
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 5000)
+    return () => window.clearTimeout(timer)
+  }, [toast])
   /** The canvas's on-screen box inside the artboard frame, in CSS px. */
   const [canvasBox, setCanvasBox] = useState({ left: 0, top: 0, width: 1, height: 1 })
 
@@ -288,6 +284,70 @@ function App() {
     return () => elements.forEach((image) => image.removeEventListener("load", onLoad))
   }, [imageElements, placeholderImage])
 
+  // ---- Low edge contrast check ---------------------------------------------
+
+  const colorTemplate = findColorTemplate(doc.colors)
+
+  /** Background only (color + pattern), for sampling what sits behind each edge. */
+  const renderBackgroundOnly = () => {
+    const output = document.createElement("canvas")
+    output.width = canvas.width
+    output.height = canvas.height
+    const context = output.getContext("2d", { willReadFrequently: true })
+    if (!context) return null
+    drawBackgroundLayer(context, colorTemplate, doc.backgroundStyle)
+    return output
+  }
+
+  const edgeItems = useMemo<EdgeCheckItem[]>(
+    () =>
+      placements.flatMap((placement) => {
+        const src = doc.slotImages[placement.slot]
+        const image = src ? imageElements.get(src) : undefined
+        if (!src || !image?.complete || !image.naturalWidth) return []
+        // A drawn border is the visible edge, so judge its color instead.
+        const border = borderFor(placement.style) > 0
+        return [
+          {
+            id: src,
+            image,
+            placement,
+            crop: coverCrop(image),
+            edgeColorOverride: border ? rgbOf(strokeColorFor(colorTemplate.background)) : undefined,
+          },
+        ]
+      }),
+    // imagesLoaded: re-check once each image finishes decoding.
+    [placements, doc.slotImages, imageElements, imagesLoaded, colorTemplate],
+  )
+
+  const edgeContrast = useEdgeContrastWarnings({
+    items: edgeItems,
+    renderBackground: renderBackgroundOnly,
+    backgroundKey: `${doc.colors}|${JSON.stringify(doc.backgroundStyle)}`,
+  })
+
+  const edgeWarningSlots = useMemo(
+    () =>
+      new Set(
+        placements
+          .filter((placement) => {
+            const src = doc.slotImages[placement.slot]
+            return Boolean(src && edgeContrast.isWarning(src))
+          })
+          .map((placement) => placement.slot),
+      ),
+    [placements, doc.slotImages, edgeContrast],
+  )
+  const selectedImage = slot !== null ? doc.slotImages[slot] : null
+  const selectedEdgeResult =
+    selectedImage && edgeContrast.isWarning(selectedImage)
+      ? (edgeContrast.results.get(selectedImage) ?? null)
+      : null
+  const selectedBackgroundFix = selectedEdgeResult
+    ? backgroundFixFor(selectedEdgeResult, colorTemplate)
+    : null
+
   useEffect(() => {
     const element = canvasRef.current
     const context = element?.getContext("2d")
@@ -306,6 +366,7 @@ function App() {
       overlay: {
         selectedSlot: slot,
         violatingSlots,
+        tintSlots: edgeWarningSlots,
         showMarginGuide: gestureKind === "move",
         symmetry,
         pxPerCss,
@@ -317,6 +378,7 @@ function App() {
           warning: readToken("--color-icon-warning"),
           guide: readToken("--color-border-default"),
           handleFill: readToken("--color-background-default"),
+          tint: readToken("--color-background-warning-base"),
         },
       },
     })
@@ -329,6 +391,7 @@ function App() {
     placeholderImage,
     slot,
     violatingSlots,
+    edgeWarningSlots,
     gestureKind,
     symmetry,
     pxPerCss,
@@ -633,6 +696,42 @@ function App() {
     )
   }
 
+  /** A short-lived confirmation shown as a Gestalt Toast. */
+  const showToast = (message: string) => {
+    setToast(message)
+    announce(message)
+  }
+
+  /**
+   * "Add outline" from the edge contrast notice: a Thin border on every frame
+   * that has none (thicker borders stay), so the frames stay consistent.
+   */
+  const addOutlineToAllFrames = () => {
+    commit((current) => ({
+      ...current,
+      styles: current.styles.map((style, index) =>
+        index < cardCount && style.border === 0 ? { ...style, border: 1 } : style,
+      ),
+    }))
+    showToast("Outline added to all frames to maintain consistency")
+  }
+
+  /** Border control's "Apply to all": the selected frame's border on every frame. */
+  const applyBorderToAllFrames = () => {
+    if (slot === null) return
+    const border = doc.styles[slot].border
+    commit((current) => ({
+      ...current,
+      styles: current.styles.map((style, index) =>
+        index < cardCount ? { ...style, border } : style,
+      ),
+    }))
+    showToast("Border applied to all frames")
+  }
+  const borderMatchesAllFrames =
+    slot !== null &&
+    doc.styles.slice(0, cardCount).every((style) => style.border === doc.styles[slot].border)
+
   /** Removes the selected frame's image only; the frame itself stays. */
   const deleteImage = () => {
     if (slot === null) return
@@ -743,71 +842,6 @@ function App() {
     return output
   }
 
-  // ---- Low edge contrast check ---------------------------------------------
-
-  const colorTemplate = findColorTemplate(doc.colors)
-
-  /** Background only (color + pattern), for sampling what sits behind each edge. */
-  const renderBackgroundOnly = () => {
-    const output = document.createElement("canvas")
-    output.width = canvas.width
-    output.height = canvas.height
-    const context = output.getContext("2d", { willReadFrequently: true })
-    if (!context) return null
-    drawBackgroundLayer(context, colorTemplate, doc.backgroundStyle)
-    return output
-  }
-
-  const edgeItems = useMemo<EdgeCheckItem[]>(
-    () =>
-      placements.flatMap((placement) => {
-        const src = doc.slotImages[placement.slot]
-        const image = src ? imageElements.get(src) : undefined
-        if (!src || !image?.complete || !image.naturalWidth) return []
-        // A drawn border is the visible edge, so judge its color instead.
-        const border = borderFor(placement.style) > 0
-        return [
-          {
-            id: src,
-            image,
-            placement,
-            crop: coverCrop(image),
-            edgeColorOverride: border ? rgbOf(strokeColorFor(colorTemplate.background)) : undefined,
-          },
-        ]
-      }),
-    // imagesLoaded: re-check once each image finishes decoding.
-    [placements, doc.slotImages, imageElements, imagesLoaded, colorTemplate],
-  )
-
-  const edgeContrast = useEdgeContrastWarnings({
-    items: edgeItems,
-    renderBackground: renderBackgroundOnly,
-    backgroundKey: `${doc.colors}|${JSON.stringify(doc.backgroundStyle)}`,
-  })
-
-  const edgeWarningSlots = placements.filter((placement) => {
-    const src = doc.slotImages[placement.slot]
-    return Boolean(src && edgeContrast.isWarning(src))
-  })
-  const selectedImage = slot !== null ? doc.slotImages[slot] : null
-  const selectedEdgeResult =
-    selectedImage && edgeContrast.isWarning(selectedImage)
-      ? (edgeContrast.results.get(selectedImage) ?? null)
-      : null
-  const selectedBackgroundFix = selectedEdgeResult
-    ? backgroundFixFor(selectedEdgeResult, colorTemplate)
-    : null
-
-  /** Marker sits just inside the card's top-right corner, in artboard CSS px. */
-  const edgeMarkerPosition = (placement: Placement) => {
-    const inset = card.cornerRadius
-    const point = toCanvas(placement, card.width / 2 - inset, -card.height / 2 + inset)
-    const x = Math.min(Math.max(point.x, 0), canvas.width)
-    const y = Math.min(Math.max(point.y, 0), canvas.height)
-    return { left: canvasBox.left + x / pxPerCss, top: canvasBox.top + y / pxPerCss }
-  }
-
   const openPreview = () => {
     const output = renderThumbnail()
     if (output) setPreviewUrl(output.toDataURL("image/png"))
@@ -882,10 +916,9 @@ function App() {
               <Box marginStart={2}>
                 <Button
                   color="red"
-                  iconStart="download"
                   onClick={exportImage}
                   size="md"
-                  text="Export PNG"
+                  text="Export"
                 />
               </Box>
             </Flex>
@@ -937,7 +970,7 @@ function App() {
                       >
                         {totalImages < maxCards ? "Add images" : `All ${maxCards} images added`}
                       </Text>
-                      <Text align="center" color="subtle" size="100">
+                      <Text align="center" color="subtle" size="200">
                         JPG or PNG or WebP • Max {maxCards} Images • 10MB Max Per Image
                       </Text>
                     </Flex>
@@ -981,7 +1014,7 @@ function App() {
                       />
                     ) : null}
                   </Flex>
-                  <Text color="subtle" size="100">
+                  <Text color="subtle" size="200">
                     Pick a template to arrange your frames.
                   </Text>
                   <TemplatePicker
@@ -995,7 +1028,20 @@ function App() {
           </div>
 
           {/* Center: artboard, frame toolbar and preview */}
-          <main className="workspace-stage">
+          <main
+            className="workspace-stage"
+            onPointerDown={(event) => {
+              const target = event.target as HTMLElement
+              if (
+                target.closest(
+                  "canvas, button, a, input, [role='button'], [role='toolbar'], [role='tab'], .frame-toolbar-anchor",
+                )
+              ) {
+                return
+              }
+              setSelectedSlot(null)
+            }}
+          >
             <Box color="secondary" display="flex" height="100%" padding={6}>
               <Flex direction="column" flex="grow" gap={4} minWidth={0}>
                 {violatingSlots.size > 0 ? (
@@ -1024,17 +1070,6 @@ function App() {
                       style={{ cursor: gestureKind === "move" ? "grabbing" : hoverCursor }}
                     />
                     <Button color="white" iconStart="eye" onClick={openPreview} text="Preview" />
-
-                    {gestureKind === null
-                      ? edgeWarningSlots.map((placement) => (
-                          <EdgeContrastMarker
-                            key={placement.slot}
-                            onSelect={() => setSelectedSlot(placement.slot)}
-                            slot={placement.slot}
-                            {...edgeMarkerPosition(placement)}
-                          />
-                        ))
-                      : null}
 
                     {selectedPlacement && slot !== null && gestureKind === null ? (
                       <div className="frame-toolbar-anchor" style={toolbarPosition(selectedPlacement)}>
@@ -1071,7 +1106,7 @@ function App() {
                       Frames
                     </Text>
                   </div>
-                  <Text color="subtle" size="100">
+                  <Text color="subtle" size="200">
                     {isEmptyState ? `${cardCount} placeholders` : `${template.name} · ${cardCount}`}
                   </Text>
                 </Flex>
@@ -1082,23 +1117,21 @@ function App() {
                   onSwap={swapImages}
                   selected={slot}
                   spareSlots={spareSlots}
+                  edgeWarningSlots={edgeWarningSlots}
                   warningSlots={violatingSlots}
                 />
-                {selectedEdgeResult && selectedImage && slot !== null ? (
+                {selectedEdgeResult && selectedImage && selectedBackgroundFix ? (
                   <EdgeContrastNotice
-                    backgroundFix={
-                      selectedBackgroundFix
-                        ? {
-                            label: selectedBackgroundFix.label,
-                            description: selectedBackgroundFix.description,
-                            onApply: () =>
-                              commit((current) => ({ ...current, colors: selectedBackgroundFix.id })),
-                          }
-                        : undefined
-                    }
-                    onAddOutline={
-                      doc.styles[slot].border === 0 ? () => updateStyle({ border: 1 }) : undefined
-                    }
+                    backgroundFix={{
+                      label: selectedBackgroundFix.label,
+                      description: selectedBackgroundFix.description,
+                      disabled: selectedBackgroundFix.id === null,
+                      onApply: () => {
+                        const id = selectedBackgroundFix.id
+                        if (id) commit((current) => ({ ...current, colors: id }))
+                      },
+                    }}
+                    onAddOutline={addOutlineToAllFrames}
                     onDismiss={() => edgeContrast.dismiss(selectedImage)}
                     weakSides={selectedEdgeResult.weakSides}
                   />
@@ -1125,7 +1158,9 @@ function App() {
                 />
                 <Divider />
                 <StylePanel
+                  borderMatchesAllFrames={borderMatchesAllFrames}
                   enabled={slot !== null}
+                  onApplyBorderToAll={applyBorderToAllFrames}
                   expanded={styleExpanded}
                   onChange={updateStyle}
                   onExpandedChange={setStyleExpanded}
@@ -1149,6 +1184,18 @@ function App() {
           </div>
         </div>
       </Box>
+
+      {toast ? (
+        <Layer>
+          <div className="toast-anchor">
+            <Toast
+              dismissButton={{ accessibilityLabel: "Dismiss", onDismiss: () => setToast(null) }}
+              text={toast}
+              type="success"
+            />
+          </div>
+        </Layer>
+      ) : null}
 
       {previewUrl ? (
         <BlogPreview

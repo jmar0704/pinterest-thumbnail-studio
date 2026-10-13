@@ -54,7 +54,7 @@ export default function BackgroundStylePanel({
           />
         </Flex>
       ) : null}
-      {pattern.value === "ripples" ? (
+      {pattern.value === "fractal" ? (
         <Flex direction="column" gap={5}>
           <StepControl
             defaultValue={defaultBackgroundStyle.ribs}
