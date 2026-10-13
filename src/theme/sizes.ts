@@ -12,6 +12,8 @@ export const sizes = {
   /** Gap between the selected frame and its floating toolbar. */
   toolbarOffset: 12,
   previewModalWidth: 1120,
+  /** The low edge contrast marker over an image. */
+  edgeMarker: 24,
 } as const
 
 /** Gestalt icon sizes used in the app (24px grid; 16 and 20 for dense UI). */

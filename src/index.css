@@ -301,3 +301,12 @@ body {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Low edge contrast marker over an image (DOM only; never in the export). */
+.edge-contrast-marker {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  border-radius: var(--rounding-pill);
+  box-shadow: var(--elevation-floating);
+}

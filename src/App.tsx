@@ -17,12 +17,15 @@ import BackgroundStylePanel from "@/components/BackgroundStylePanel"
 import BlogPreview from "@/components/BlogPreview"
 import ColorTemplatePicker from "@/components/ColorTemplatePicker"
 import DropShadowSwitch from "@/components/DropShadowSwitch"
+import EdgeContrastMarker from "@/components/EdgeContrastMarker"
+import EdgeContrastNotice from "@/components/EdgeContrastNotice"
 import FrameChips from "@/components/FrameChips"
 import FrameToolbar from "@/components/FrameToolbar"
 import StylePanel from "@/components/StylePanel"
 import TemplatePicker from "@/components/TemplatePicker"
+import useEdgeContrastWarnings, { type EdgeCheckItem } from "@/hooks/useEdgeContrastWarnings"
 import useHistory from "@/hooks/useHistory"
-import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
+import { canvas, card, findTemplate, maxCards, templates } from "@/data/templates"
 import { defaultCardStyle, isDefaultStyle, type CardStyle } from "@/data/styleOptions"
 import {
   defaultBackgroundStyle,
@@ -30,6 +33,7 @@ import {
   type BackgroundStyle,
 } from "@/data/backgroundOptions"
 import {
+  borderFor,
   cardCorners,
   clampOffset,
   computePlacements,
@@ -40,11 +44,30 @@ import {
   rotationHandle,
   sizeStepFor,
   snapToSymmetry,
+  toCanvas,
   type Offset,
   type Placement,
 } from "@/lib/composition"
-import { drawComposition, handleMetrics } from "@/lib/drawComposition"
-import { colorTemplates, findColorTemplate, whiteColorTemplate } from "@/theme/artworkPalette"
+import {
+  coverCrop,
+  drawBackgroundLayer,
+  drawComposition,
+  handleMetrics,
+} from "@/lib/drawComposition"
+import {
+  contrastRatio,
+  relativeLuminance,
+  WARN_RATIO,
+  type EdgeContrastResult,
+} from "@/lib/edgeContrast"
+import {
+  colorTemplates,
+  findColorTemplate,
+  rgbOf,
+  strokeColorFor,
+  whiteColorTemplate,
+  type ColorTemplate,
+} from "@/theme/artworkPalette"
 import { iconSizes, sizes } from "@/theme/sizes"
 
 type Doc = {
@@ -115,6 +138,45 @@ function revokeUnused(dropped: Doc[], retained: Doc[]) {
   const live = new Set(retained.flatMap(imagesOf))
   for (const url of new Set(dropped.flatMap(imagesOf))) {
     if (!live.has(url)) URL.revokeObjectURL(url)
+  }
+}
+
+/**
+ * An existing background color that would separate an image's weak edges
+ * from the background: lighter when the edges are darker than the
+ * background, darker when they're lighter. Same hue where possible (deep ↔
+ * light), White or Gray deep otherwise. Only returned when the new color's
+ * plain fill clears the warning threshold for every weak side.
+ */
+function backgroundFixFor(result: EdgeContrastResult, current: ColorTemplate) {
+  const weak = result.weakSides.flatMap((side) => result.sides[side] ?? [])
+  if (!weak.length) return null
+  const edge = weak.reduce((total, item) => total + item.edgeLuminance, 0) / weak.length
+  const background = weak.reduce((total, item) => total + item.backgroundLuminance, 0) / weak.length
+  const lighten = edge <= background
+  const hue = current.id.replace(/-(light|deep)$/, "")
+  const targetId = lighten
+    ? current.tone === "deep"
+      ? `${hue}-light`
+      : current.id === whiteColorTemplate.id
+        ? null
+        : whiteColorTemplate.id
+    : current.tone === "light"
+      ? current.id === whiteColorTemplate.id
+        ? "gray-deep"
+        : `${hue}-deep`
+      : null
+  const target = colorTemplates.find((item) => item.id === targetId)
+  if (!target) return null
+  const [r, g, b] = rgbOf(target.background)
+  const targetLuminance = relativeLuminance(r, g, b)
+  if (weak.some((item) => contrastRatio(item.edgeLuminance, targetLuminance) < WARN_RATIO)) {
+    return null
+  }
+  return {
+    id: target.id,
+    label: lighten ? "Lighten background" : "Darken background",
+    description: `Switch the background to ${target.name}`,
   }
 }
 
@@ -681,6 +743,71 @@ function App() {
     return output
   }
 
+  // ---- Low edge contrast check ---------------------------------------------
+
+  const colorTemplate = findColorTemplate(doc.colors)
+
+  /** Background only (color + pattern), for sampling what sits behind each edge. */
+  const renderBackgroundOnly = () => {
+    const output = document.createElement("canvas")
+    output.width = canvas.width
+    output.height = canvas.height
+    const context = output.getContext("2d", { willReadFrequently: true })
+    if (!context) return null
+    drawBackgroundLayer(context, colorTemplate, doc.backgroundStyle)
+    return output
+  }
+
+  const edgeItems = useMemo<EdgeCheckItem[]>(
+    () =>
+      placements.flatMap((placement) => {
+        const src = doc.slotImages[placement.slot]
+        const image = src ? imageElements.get(src) : undefined
+        if (!src || !image?.complete || !image.naturalWidth) return []
+        // A drawn border is the visible edge, so judge its color instead.
+        const border = borderFor(placement.style) > 0
+        return [
+          {
+            id: src,
+            image,
+            placement,
+            crop: coverCrop(image),
+            edgeColorOverride: border ? rgbOf(strokeColorFor(colorTemplate.background)) : undefined,
+          },
+        ]
+      }),
+    // imagesLoaded: re-check once each image finishes decoding.
+    [placements, doc.slotImages, imageElements, imagesLoaded, colorTemplate],
+  )
+
+  const edgeContrast = useEdgeContrastWarnings({
+    items: edgeItems,
+    renderBackground: renderBackgroundOnly,
+    backgroundKey: `${doc.colors}|${JSON.stringify(doc.backgroundStyle)}`,
+  })
+
+  const edgeWarningSlots = placements.filter((placement) => {
+    const src = doc.slotImages[placement.slot]
+    return Boolean(src && edgeContrast.isWarning(src))
+  })
+  const selectedImage = slot !== null ? doc.slotImages[slot] : null
+  const selectedEdgeResult =
+    selectedImage && edgeContrast.isWarning(selectedImage)
+      ? (edgeContrast.results.get(selectedImage) ?? null)
+      : null
+  const selectedBackgroundFix = selectedEdgeResult
+    ? backgroundFixFor(selectedEdgeResult, colorTemplate)
+    : null
+
+  /** Marker sits just inside the card's top-right corner, in artboard CSS px. */
+  const edgeMarkerPosition = (placement: Placement) => {
+    const inset = card.cornerRadius
+    const point = toCanvas(placement, card.width / 2 - inset, -card.height / 2 + inset)
+    const x = Math.min(Math.max(point.x, 0), canvas.width)
+    const y = Math.min(Math.max(point.y, 0), canvas.height)
+    return { left: canvasBox.left + x / pxPerCss, top: canvasBox.top + y / pxPerCss }
+  }
+
   const openPreview = () => {
     const output = renderThumbnail()
     if (output) setPreviewUrl(output.toDataURL("image/png"))
@@ -898,6 +1025,17 @@ function App() {
                     />
                     <Button color="white" iconStart="eye" onClick={openPreview} text="Preview" />
 
+                    {gestureKind === null
+                      ? edgeWarningSlots.map((placement) => (
+                          <EdgeContrastMarker
+                            key={placement.slot}
+                            onSelect={() => setSelectedSlot(placement.slot)}
+                            slot={placement.slot}
+                            {...edgeMarkerPosition(placement)}
+                          />
+                        ))
+                      : null}
+
                     {selectedPlacement && slot !== null && gestureKind === null ? (
                       <div className="frame-toolbar-anchor" style={toolbarPosition(selectedPlacement)}>
                         <FrameToolbar
@@ -946,6 +1084,25 @@ function App() {
                   spareSlots={spareSlots}
                   warningSlots={violatingSlots}
                 />
+                {selectedEdgeResult && selectedImage && slot !== null ? (
+                  <EdgeContrastNotice
+                    backgroundFix={
+                      selectedBackgroundFix
+                        ? {
+                            label: selectedBackgroundFix.label,
+                            description: selectedBackgroundFix.description,
+                            onApply: () =>
+                              commit((current) => ({ ...current, colors: selectedBackgroundFix.id })),
+                          }
+                        : undefined
+                    }
+                    onAddOutline={
+                      doc.styles[slot].border === 0 ? () => updateStyle({ border: 1 }) : undefined
+                    }
+                    onDismiss={() => edgeContrast.dismiss(selectedImage)}
+                    weakSides={selectedEdgeResult.weakSides}
+                  />
+                ) : null}
                 {slot !== null ? (
                   // Hidden until focused: lets keyboard users jump to the toolbar.
                   <div className="visually-hidden-focusable">

@@ -80,6 +80,12 @@ function linearTransform(placement: Placement): [number, number, number, number]
   ]
 }
 
+/** The full card transform as a canvas matrix [a, b, c, d, e, f]. */
+export function cardMatrix(placement: Placement): [number, number, number, number, number, number] {
+  const [a, b, c, d] = linearTransform(placement)
+  return [a, b, c, d, placement.cx, placement.cy]
+}
+
 export function applyCardTransform(
   context: CanvasRenderingContext2D,
   placement: Placement,

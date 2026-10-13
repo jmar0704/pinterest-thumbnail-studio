@@ -74,6 +74,20 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Low edge contrast warning (2026-10-13)
+
+A design-quality check, not a compliance claim (photos are exempt from WCAG 1.4.11). For each image, the visible outer edge (the drawn cover crop, minus rounded corners; or the border color when a frame border is drawn) is compared per side with the background just outside it, sampled from a background-only render (color + pattern) re-projected into the card's own space, so rotation, 3D tilt and size are accounted for. Below 2:1 on any side warns: a small marker on the image (DOM, never in the export) and a Gestalt BannerCallout (`type="warning"`, not aria-live) for the selected frame. Fixes reuse existing controls: Add outline (Thin border, when there's no border) and Lighten/Darken background (the same hue's other tone, or White / Gray deep, offered only when its plain fill would clear 2:1). Dismissal is per image + background. Re-checks are debounced 150ms after changes and sample at about 96px.
+
+Known limitation: transparent PNGs and cutouts. Mostly transparent sides are skipped, because the visible edge is the subject's silhouette, which isn't judged yet.
+
+Follow-ups:
+- Show the 2:1–3:1 "hint" level (computed already; `SHOW_HINT_LEVEL` in `src/lib/edgeContrast.ts`).
+- Silhouette contour check for cutouts.
+- Also check against Pinterest's dark-mode feed color, since the thumbnail's own edges sit on the feed.
+- Rotated images are handled by the card-space reprojection, but the bands assume straight edges; the rounded corners are excluded rather than measured.
+- Overlapping frames: the check compares to the background, not to a neighboring frame behind.
+- Add unit tests for `src/lib/edgeContrast.ts` if a test runner is added (cases verified once with a temporary script).
+
 ## Styling pass (2026-10-13)
 
 - Step controls share one look: equal-width segments of the same height whose labels never break mid-value; with very large text, whole segments wrap to a new row (also fixes the audit's 1.4.4/1.4.12 split-label finding). The step descriptions beside each heading ("As designed", "Flat"…) are gone from view but stay in each segment's accessible name.

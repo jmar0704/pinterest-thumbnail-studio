@@ -94,6 +94,11 @@ function channels(hex: string): [number, number, number] {
   ]
 }
 
+/** A palette color as [r, g, b] (0–255), e.g. for the edge contrast check. */
+export function rgbOf(hex: string): [number, number, number] {
+  return channels(hex)
+}
+
 /** WCAG relative luminance, 0 (black) to 1 (white). */
 export function luminance(hex: string) {
   const [r, g, b] = channels(hex).map((c) => {

@@ -77,31 +77,56 @@ function isReady(image: HTMLImageElement | undefined): image is HTMLImageElement
   return Boolean(image?.complete && image.naturalWidth)
 }
 
-function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement) {
+/**
+ * The part of an image a card shows: centered "cover" crop to the card's
+ * 450:650 ratio, in the image's intrinsic pixels. The edge contrast check
+ * samples exactly this crop.
+ */
+export function coverCrop(image: HTMLImageElement) {
   const frameRatio = card.width / card.height
   const imageRatio = image.naturalWidth / image.naturalHeight
-  let sourceWidth = image.naturalWidth
-  let sourceHeight = image.naturalHeight
-  let sourceX = 0
-  let sourceY = 0
+  let sw = image.naturalWidth
+  let sh = image.naturalHeight
+  let sx = 0
+  let sy = 0
   if (imageRatio > frameRatio) {
-    sourceWidth = image.naturalHeight * frameRatio
-    sourceX = (image.naturalWidth - sourceWidth) / 2
+    sw = image.naturalHeight * frameRatio
+    sx = (image.naturalWidth - sw) / 2
   } else {
-    sourceHeight = image.naturalWidth / frameRatio
-    sourceY = (image.naturalHeight - sourceHeight) / 2
+    sh = image.naturalWidth / frameRatio
+    sy = (image.naturalHeight - sh) / 2
   }
+  return { sx, sy, sw, sh }
+}
+
+function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement) {
+  const { sx, sy, sw, sh } = coverCrop(image)
   context.drawImage(
     image,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
+    sx,
+    sy,
+    sw,
+    sh,
     -card.width / 2,
     -card.height / 2,
     card.width,
     card.height,
   )
+}
+
+/**
+ * The background only: color template fill plus the chosen pattern. No
+ * cards, shadows or overlay. drawComposition paints this first; the edge
+ * contrast check renders it alone to see what sits behind each card.
+ */
+export function drawBackgroundLayer(
+  context: CanvasRenderingContext2D,
+  colors: ColorTemplate,
+  backgroundStyle: BackgroundStyle,
+) {
+  context.fillStyle = colors.background
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  drawBackgroundPattern(context, colors, backgroundStyle)
 }
 
 /**
@@ -127,9 +152,7 @@ export function drawComposition(
   },
 ) {
   context.save()
-  context.fillStyle = colors.background
-  context.fillRect(0, 0, canvas.width, canvas.height)
-  drawBackgroundPattern(context, colors, backgroundStyle)
+  drawBackgroundLayer(context, colors, backgroundStyle)
 
   for (const placement of placements) {
     const image = imageForSlot(placement.slot)

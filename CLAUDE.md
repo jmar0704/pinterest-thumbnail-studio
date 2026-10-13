@@ -61,11 +61,12 @@ The source of truth is `src/data/templates.json`. It was first extracted from Fi
 - `src/data/styleOptions.ts`: the stepped frame style controls.
 - `src/data/backgroundOptions.ts`: background patterns (Rings, Ripples) and their steps.
 - `src/lib/composition.ts`: card placement, margin clamping, margin checks, hit testing, selection-handle geometry (resize/rotate snap to the style steps) and center-line snapping.
-- `src/lib/drawComposition.ts`: canvas rendering; the overlay (guides, selection) is preview-only.
+- `src/lib/drawComposition.ts`: canvas rendering (`drawBackgroundLayer` is the background-only render; `coverCrop` is the image crop drawn); the overlay (guides, selection) is preview-only.
+- `src/lib/edgeContrast.ts`: pure low-edge-contrast math (WCAG luminance, per-side sampling); `src/hooks/useEdgeContrastWarnings.ts` runs it debounced in card space.
 - `src/lib/drawBackground.ts`: background patterns, colored from the color template (Ripples cached per color/setting).
 - `src/hooks/useHistory.ts`: undo/redo snapshots.
 - `src/theme/artworkPalette.ts`: color templates (background + paired drop-shadow glow) and other artwork colors.
-- `src/components/`: TemplatePicker, LayoutThumbnail, FrameChips (3-column frame grid: tap to select, drag to swap images), FrameToolbar (floating actions under the selected frame), StylePanel (the Frame style dropdown), BackgroundStylePanel (the Background style dropdown), StepControl, ColorTemplatePicker, DropShadowSwitch, BlogPreview (the Preview modal).
+- `src/components/`: TemplatePicker, LayoutThumbnail, FrameChips (3-column frame grid: tap to select, drag to swap images), FrameToolbar (floating actions under the selected frame), StylePanel (the Frame style dropdown), BackgroundStylePanel (the Background style dropdown), StepControl, ColorTemplatePicker, DropShadowSwitch, BlogPreview (the Preview modal), EdgeContrastNotice and EdgeContrastMarker (low edge contrast warning).
 - UI copy uses sentence case, including section headings.
 
 ## Code conventions
