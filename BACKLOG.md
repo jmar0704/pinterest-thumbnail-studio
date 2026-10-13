@@ -74,6 +74,11 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Styling pass (2026-10-13)
+
+- Step controls share one look: equal-width segments of the same height whose labels never break mid-value; with very large text, whole segments wrap to a new row (also fixes the audit's 1.4.4/1.4.12 split-label finding). The step descriptions beside each heading ("As designed", "Flat"…) are gone from view but stay in each segment's accessible name.
+- "Style" is now "Frame style". A new "Background style" dropdown sits under it with a Pattern control: None, Rings (dashed concentric ellipses; Rings 1–5, Gap Tight/Medium/Wide) or Ripples (fluted glass; Ribs Fine/Medium/Wide, Wave Off/Soft/Strong). Pattern colors come from the color template's paired glow color. Patterns are part of the artwork (export, Preview, undo) and Reset all clears them. Ripples are rendered once per color/setting and cached.
+
 ## Accessibility (WCAG 2.2 AA audit, 2026-10-12)
 
 Audited with axe-core, a keyboard walk, dialog focus checks, reflow/zoom/text-spacing checks, token contrast and a manual review. Automated tools catch only part of the issues; this isn't a conformance claim.
@@ -93,6 +98,9 @@ Still open (best practice, not failures):
 - Selected states are written into accessible names ("…, selected") instead of `aria-pressed`.
 - 19 color swatches are 19 tab stops; a radio group with arrow keys would be faster.
 - Status messages clear after 4 seconds (they're announced, but slow readers may miss them on screen).
+- At 200% text the Gestalt accordion titles truncate ("Frame style ·…"); the frame number is lost visually.
+- At 320px (400% zoom) frame tiles are ~40px wide and the swap button covers most of each tile.
+- Text sizes are px (Gestalt), so a browser's default font-size setting has no effect (zoom works).
 - Not checked: real screen readers (VoiceOver, NVDA, mobile), touch-only use, Gestalt's internal tooltip wrappers (axe "needs review").
 
 ## Next

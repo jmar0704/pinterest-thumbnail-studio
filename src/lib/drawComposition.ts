@@ -1,4 +1,6 @@
 import { canvas, card } from "@/data/templates"
+import type { BackgroundStyle } from "@/data/backgroundOptions"
+import { drawBackgroundPattern } from "@/lib/drawBackground"
 import {
   glow,
   imageBackingFill,
@@ -110,12 +112,14 @@ export function drawComposition(
   context: CanvasRenderingContext2D,
   {
     colors,
+    backgroundStyle,
     placements,
     imageForSlot,
     placeholder,
     overlay,
   }: {
     colors: ColorTemplate
+    backgroundStyle: BackgroundStyle
     placements: Placement[]
     imageForSlot: (slot: number) => HTMLImageElement | undefined
     placeholder: HTMLImageElement
@@ -125,6 +129,7 @@ export function drawComposition(
   context.save()
   context.fillStyle = colors.background
   context.fillRect(0, 0, canvas.width, canvas.height)
+  drawBackgroundPattern(context, colors, backgroundStyle)
 
   for (const placement of placements) {
     const image = imageForSlot(placement.slot)

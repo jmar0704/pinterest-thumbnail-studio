@@ -13,6 +13,7 @@ import {
   Text,
 } from "gestalt"
 import "gestalt/dist/gestalt.css"
+import BackgroundStylePanel from "@/components/BackgroundStylePanel"
 import BlogPreview from "@/components/BlogPreview"
 import ColorTemplatePicker from "@/components/ColorTemplatePicker"
 import DropShadowSwitch from "@/components/DropShadowSwitch"
@@ -23,6 +24,11 @@ import TemplatePicker from "@/components/TemplatePicker"
 import useHistory from "@/hooks/useHistory"
 import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
 import { defaultCardStyle, isDefaultStyle, type CardStyle } from "@/data/styleOptions"
+import {
+  defaultBackgroundStyle,
+  isDefaultBackgroundStyle,
+  type BackgroundStyle,
+} from "@/data/backgroundOptions"
 import {
   cardCorners,
   clampOffset,
@@ -47,6 +53,8 @@ type Doc = {
   offsets: Offset[]
   /** Color template id: background + paired drop-shadow glow. */
   colors: string
+  /** Pattern drawn over the background color, behind the frames. */
+  backgroundStyle: BackgroundStyle
   /** One image per card slot; null shows the placeholder. Images never repeat. */
   slotImages: (string | null)[]
 }
@@ -73,6 +81,7 @@ const initialDoc: Doc = {
   styles: defaultStyles(),
   offsets: zeroOffsets(),
   colors: whiteColorTemplate.id,
+  backgroundStyle: { ...defaultBackgroundStyle },
   slotImages: Array.from({ length: maxCards }, () => null),
 }
 
@@ -123,6 +132,7 @@ function App() {
   const [status, setStatus] = useState("")
   const [imagesLoaded, setImagesLoaded] = useState(0)
   const [styleExpanded, setStyleExpanded] = useState(false)
+  const [backgroundStyleExpanded, setBackgroundStyleExpanded] = useState(false)
   /** Snapshot of the design shown in the blog preview, or null when closed. */
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewTitle, setPreviewTitle] = useState("")
@@ -224,6 +234,7 @@ function App() {
     element.height = canvas.height
     drawComposition(context, {
       colors: findColorTemplate(doc.colors),
+      backgroundStyle: doc.backgroundStyle,
       placements,
       imageForSlot: (cardSlot) => {
         const src = imageSrcForSlot(cardSlot)
@@ -249,6 +260,7 @@ function App() {
     })
   }, [
     doc.colors,
+    doc.backgroundStyle,
     placements,
     imageSrcForSlot,
     imageElements,
@@ -441,13 +453,14 @@ function App() {
       ),
     }))
 
-  /** Every frame, style and the background back to the template as designed. */
+  /** Every frame, style, the background color and pattern back to the template as designed. */
   const resetAll = () => {
     commit((current) => ({
       ...current,
       offsets: zeroOffsets(),
       styles: defaultStyles(),
       colors: whiteColorTemplate.id,
+      backgroundStyle: { ...defaultBackgroundStyle },
     }))
     announce(`${template.name} is back to its original design`)
   }
@@ -458,7 +471,8 @@ function App() {
   const canResetAll =
     doc.offsets.slice(0, cardCount).some(isMoved) ||
     doc.styles.slice(0, cardCount).some((style) => !isDefaultStyle(style)) ||
-    doc.colors !== whiteColorTemplate.id
+    doc.colors !== whiteColorTemplate.id ||
+    !isDefaultBackgroundStyle(doc.backgroundStyle)
 
   const pickImages = (multiple: boolean, onPick: (files: File[]) => void) => {
     const input = document.createElement("input")
@@ -656,6 +670,7 @@ function App() {
     if (!context) return null
     drawComposition(context, {
       colors: findColorTemplate(doc.colors),
+      backgroundStyle: doc.backgroundStyle,
       placements,
       imageForSlot: (cardSlot) => {
         const src = imageSrcForSlot(cardSlot)
@@ -959,6 +974,18 @@ function App() {
                   onExpandedChange={setStyleExpanded}
                   slot={activeSlot}
                   style={doc.styles[activeSlot]}
+                />
+                <Divider />
+                <BackgroundStylePanel
+                  expanded={backgroundStyleExpanded}
+                  onChange={(update) =>
+                    commit((current) => ({
+                      ...current,
+                      backgroundStyle: { ...current.backgroundStyle, ...update },
+                    }))
+                  }
+                  onExpandedChange={setBackgroundStyleExpanded}
+                  style={doc.backgroundStyle}
                 />
               </Flex>
             </Box>

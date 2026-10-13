@@ -70,6 +70,10 @@ export const placeholderFill = "#fff7f7"
 /** Backing fill drawn behind a loaded image (visible only at the rounded edges). */
 export const imageBackingFill = "#f1f0eb"
 
+/** Sheen on each fluted-glass rib in the Ripples background (used with withAlpha). */
+export const ribHighlight = "#ffffff"
+export const ribShade = "#000000"
+
 /** Frame stroke colors; pick with strokeColorFor() so it always contrasts the background. */
 export const strokeOnLight = "#211922"
 export const strokeOnDark = "#ffffff"

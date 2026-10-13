@@ -22,7 +22,7 @@ const controls: { key: StepKey; label: string; steps: Step<unknown>[] }[] = [
 ]
 
 /**
- * Per-frame style controls, tucked into a "Style" dropdown (Gestalt
+ * Per-frame style controls, tucked into a "Frame style" dropdown (Gestalt
  * Accordion.Expandable) so the frame grid above stays in view.
  */
 export default function StylePanel({
@@ -77,14 +77,14 @@ export default function StylePanel({
 
   return (
     <Accordion.Expandable
-      accessibilityCollapseLabel="Collapse style"
-      accessibilityExpandLabel="Expand style"
+      accessibilityCollapseLabel="Collapse frame style"
+      accessibilityExpandLabel="Expand frame style"
       borderStyle="none"
       expandedIndex={expanded ? 0 : null}
       id="style-panel"
       items={[
         {
-          title: enabled ? `Style · Frame ${slot + 1}` : "Style",
+          title: enabled ? `Frame style · Frame ${slot + 1}` : "Frame style",
           children: content,
         },
       ]}
