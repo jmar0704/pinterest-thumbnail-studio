@@ -19,6 +19,7 @@ export default function StepControl<T>({
   defaultValue,
   onChange,
   action,
+  disabledNote,
 }: {
   label: string
   steps: Step<T>[]
@@ -27,8 +28,11 @@ export default function StepControl<T>({
   onChange: (index: number) => void
   /** Extra control beside the heading, e.g. Border's "Apply to all". */
   action?: ReactNode
+  /** When set, the control is greyed out and locked, with this explanation. */
+  disabledNote?: string
 }) {
-  const isDefault = value === defaultValue
+  const disabled = disabledNote !== undefined
+  const isDefault = disabled || value === defaultValue
   return (
     <Flex direction="column" gap={2}>
       <Flex alignItems="center" justifyContent="between">
@@ -52,7 +56,17 @@ export default function StepControl<T>({
           </Box>
         </Flex>
       </Flex>
-      <div className="step-control">
+      {disabled ? (
+        <Text color="subtle" size="200">
+          {disabledNote}
+        </Text>
+      ) : null}
+      {/* Locked: greyed out, inert, and announced as unavailable. */}
+      <div
+        aria-disabled={disabled || undefined}
+        className={disabled ? "step-control step-control-disabled" : "step-control"}
+        inert={disabled}
+      >
         <SegmentedControl
           items={steps.map((step) => (
             <span key={step.label}>

@@ -85,6 +85,13 @@ Commit `54953fb`.
 - **Lighten/Darken** is now decided by the image's own lightness, which fixes the greyed-out "Lighten" on light images.
 - The canvas warning is an 8px orange stroke just outside the frame.
 
+## 10. Final polish (Oct 13)
+
+- Templates are ordered by frame count.
+- Showcase's back card keeps its exact Figma scale (0.737×), and its Size control is locked and greyed out.
+- "Empty layout" was renamed **Base layout**.
+- Nothing floats over the Preview modal.
+
 ## Ground rules that held throughout
 
 - **Design system:** Gestalt components first. Custom components are composed from Gestalt primitives and semantic tokens. Raw colors exist only in the artwork palette and the template JSON.

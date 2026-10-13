@@ -301,6 +301,7 @@ function drawOverlay(
   context.save()
   line(anchor, top)
   handle(top)
-  cardCorners(selected).forEach(handle)
+  // A template-fixed size can't be resized, so it gets no corner handles.
+  if (!selected.sizeLocked) cardCorners(selected).forEach(handle)
   context.restore()
 }

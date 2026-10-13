@@ -21,6 +21,8 @@ export type Placement = {
   /** Degrees, clockwise positive. */
   rotate: number
   scale: number
+  /** True when the template fixes this card's size (Size control locked). */
+  sizeLocked: boolean
   /** Simulated turn around the vertical axis, degrees (signed). */
   tilt: number
   style: CardStyle
@@ -53,7 +55,9 @@ export function computePlacements({
         cx: templateCard.cx + offset.x,
         cy: templateCard.cy + offset.y,
         rotate: templateCard.rotate + rotateSteps[style.rotate].value,
-        scale: sizeSteps[style.size].value,
+        // A fixed template scale (Showcase's back card) overrides the Size step.
+        scale: templateCard.scale ?? sizeSteps[style.size].value,
+        sizeLocked: templateCard.scale !== undefined,
         tilt: tiltSteps[style.tilt].value,
         style,
       }

@@ -74,6 +74,13 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Edits (2026-10-13, fourth pass)
+
+- Templates are listed by frame count, lowest first (ties keep JSON order): Showcase, Arc, Stack, Spread, Table spread, Trail, Strips, Grid.
+- Showcase's back card is back to its Figma scale (0.7373×), stored as a fixed `"scale"` on the card. Its Size control is greyed out and inert with the note "Size is fixed by this template", and it has no corner resize handles (rotation still works). This replaces the earlier "starts on S" mapping.
+- "Empty layout" is now "Base layout" (button, announcement, and the empty state's name).
+- While Preview is open, nothing floats over it: the frame toolbar and toasts are hidden, and swap menus and the drop shadow hint close.
+
 ## Templates and edits (2026-10-13, third pass)
 
 - Four templates extracted from Figma page "Templates 2" (122:251) with the Plugin API (exact centers and rotations from each card's absolute transform): Trail (7 cards; bleeds right, bottom, left), Showcase (2; the 0.74× back card starts on Size S, 0.9×, by request), Table spread (5; top, bottom), Strips (7; all sides). Bleed sides were computed from the geometry, so none of them warn at their defaults. Template cards can now carry a starting Size step, which resets honor.

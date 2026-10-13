@@ -308,3 +308,9 @@ body {
   transform: translateX(-50%);
   z-index: 10;
 }
+
+/* A stepped control the template has locked (e.g. Showcase's fixed-size frame). */
+.step-control-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

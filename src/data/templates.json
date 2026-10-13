@@ -46,7 +46,7 @@
   },
   "emptyState": {
     "id": "empty",
-    "name": "Empty State",
+    "name": "Base layout",
     "figmaNodeId": "85:875",
     "role": "Default layout shown before a template is chosen. Not selectable in the template picker.",
     "allowBleed": [],
@@ -130,9 +130,9 @@
       "name": "Showcase",
       "figmaNodeId": "122:269",
       "allowBleed": [],
-      "note": "In Figma the back card is 0.74x (331.8x479.2); it maps to the Size control's S step (0.9x).",
+      "note": "The back card is 0.7373x in Figma (331.8x479.2). Its scale is fixed: the Size control is locked for it.",
       "cards": [
-        { "z": 0, "cx": 616.83, "cy": 449.43, "rotate": -20, "size": "S" },
+        { "z": 0, "cx": 616.83, "cy": 449.43, "rotate": -20, "scale": 0.7373 },
         { "z": 1, "cx": 942.02, "cy": 450.13, "rotate": 10 }
       ]
     },

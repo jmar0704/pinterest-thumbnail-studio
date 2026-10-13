@@ -11,10 +11,10 @@ export type TemplateCard = {
   /** Degrees, clockwise positive. */
   rotate: number
   /**
-   * The card's starting Size step label ("S", "M", …) when the design calls
-   * for a non-default size, e.g. Showcase's smaller back card. Default "M".
+   * A fixed scale from the design (e.g. Showcase's 0.7373× back card). When
+   * set, the card always draws at this scale and its Size control is locked.
    */
-  size?: string
+  scale?: number
 }
 
 export type Template = {
@@ -58,7 +58,10 @@ export type Card = {
 export const canvas: Canvas = data.canvas
 export const card: Card = data.card
 export const emptyState = data.emptyState as Template
-export const templates = data.templates as Template[]
+/** Templates ordered by frame count, lowest first (ties keep their JSON order). */
+export const templates = [...(data.templates as Template[])].sort(
+  (a, b) => a.cards.length - b.cards.length,
+)
 
 /** The most cards any layout uses; per-card state is sized to this. */
 export const maxCards = Math.max(

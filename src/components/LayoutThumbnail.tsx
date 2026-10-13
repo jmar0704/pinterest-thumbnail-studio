@@ -1,5 +1,4 @@
 import { canvas, card, type Template } from "@/data/templates"
-import { sizeSteps } from "@/data/styleOptions"
 
 /** A template's card silhouettes, drawn from templates.json. */
 export default function LayoutThumbnail({
@@ -17,8 +16,8 @@ export default function LayoutThumbnail({
       viewBox={`0 0 ${canvas.width} ${canvas.height}`}
     >
       {cards.map((templateCard) => {
-        // Cards that start on a smaller Size step (Showcase) are drawn smaller.
-        const scale = sizeSteps.find((step) => step.label === templateCard.size)?.value ?? 1
+        // Cards with a fixed template scale (Showcase) are drawn at that size.
+        const scale = templateCard.scale ?? 1
         return (
           <rect
             className={selected ? "template-card template-card-selected" : "template-card"}

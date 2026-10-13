@@ -62,15 +62,6 @@ export const defaultCardStyle: CardStyle = {
   dropShadow: 0,
 }
 
-/**
- * A card's starting style in a template: the defaults, plus the Size step
- * the template asks for (e.g. Showcase's back card starts on S).
- */
-export function templateCardStyle(sizeLabel?: string): CardStyle {
-  const size = sizeSteps.findIndex((step) => step.label === sizeLabel)
-  return { ...defaultCardStyle, size: size === -1 ? defaultCardStyle.size : size }
-}
-
 /** Whether a card's style still matches its template's starting style. */
 export function isDefaultStyle(style: CardStyle, start: CardStyle = defaultCardStyle) {
   return (

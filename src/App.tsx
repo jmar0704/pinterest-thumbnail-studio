@@ -26,10 +26,10 @@ import StylePanel from "@/components/StylePanel"
 import TemplatePicker from "@/components/TemplatePicker"
 import useEdgeContrastWarnings, { type EdgeCheckItem } from "@/hooks/useEdgeContrastWarnings"
 import useHistory from "@/hooks/useHistory"
-import { canvas, findTemplate, maxCards, templates, type Template } from "@/data/templates"
+import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
 import {
+  defaultCardStyle,
   isDefaultStyle,
-  templateCardStyle,
   type CardStyle,
 } from "@/data/styleOptions"
 import {
@@ -95,9 +95,8 @@ type Gesture = {
 type Point = { x: number; y: number }
 
 const zeroOffsets = (): Offset[] => Array.from({ length: maxCards }, () => ({ x: 0, y: 0 }))
-/** Every slot's starting style for a layout (some template cards start smaller). */
-const defaultStyles = (layout?: Template): CardStyle[] =>
-  Array.from({ length: maxCards }, (_, slot) => templateCardStyle(layout?.cards[slot]?.size))
+const defaultStyles = (): CardStyle[] =>
+  Array.from({ length: maxCards }, () => ({ ...defaultCardStyle }))
 
 const initialDoc: Doc = {
   templateId: null,
@@ -440,6 +439,7 @@ function App() {
     const radius = (handleMetrics.radius + 6) * pxPerCss
     const { handle } = rotationHandle(selectedPlacement, handleMetrics.rotationDistance * pxPerCss)
     if (near(point, handle, radius)) return { kind: "rotate" as const, corner: -1 }
+    if (selectedPlacement.sizeLocked) return null
     const corner = cardCorners(selectedPlacement).findIndex((item) => near(point, item, radius))
     return corner === -1 ? null : { kind: "resize" as const, corner }
   }
@@ -550,7 +550,7 @@ function App() {
       ...current,
       templateId: id,
       offsets: zeroOffsets(),
-      styles: defaultStyles(findTemplate(id)),
+      styles: defaultStyles(),
     }))
     setSelectedSlot(0)
   }
@@ -563,7 +563,7 @@ function App() {
       styles: defaultStyles(),
     }))
     setSelectedSlot(null)
-    announce("Back to the empty layout. Your images are kept.")
+    announce("Back to the base layout. Your images are kept.")
   }
 
   const updateStyle = (update: Partial<CardStyle>) =>
@@ -582,7 +582,7 @@ function App() {
       ...current,
       offsets: current.offsets.map((offset, index) => (index === slot ? { x: 0, y: 0 } : offset)),
       styles: current.styles.map((style, index) =>
-        index === slot ? templateCardStyle(template.cards[slot]?.size) : style,
+        index === slot ? { ...defaultCardStyle } : style,
       ),
     }))
 
@@ -591,7 +591,7 @@ function App() {
     commit((current) => ({
       ...current,
       offsets: zeroOffsets(),
-      styles: defaultStyles(template),
+      styles: defaultStyles(),
       colors: whiteColorTemplate.id,
       backgroundStyle: { ...defaultBackgroundStyle },
     }))
@@ -602,13 +602,13 @@ function App() {
   const isFrameChanged =
     slot !== null &&
     (isMoved(doc.offsets[slot]) ||
-      !isDefaultStyle(doc.styles[slot], templateCardStyle(template.cards[slot]?.size)))
+      !isDefaultStyle(doc.styles[slot]))
   const canResetAll =
     doc.offsets.slice(0, cardCount).some(isMoved) ||
     doc.styles
       .slice(0, cardCount)
       .some(
-        (style, index) => !isDefaultStyle(style, templateCardStyle(template.cards[index]?.size)),
+        (style) => !isDefaultStyle(style),
       ) ||
     doc.colors !== whiteColorTemplate.id ||
     !isDefaultBackgroundStyle(doc.backgroundStyle)
@@ -664,7 +664,7 @@ function App() {
               ...current,
               templateId: target.id,
               offsets: zeroOffsets(),
-              styles: defaultStyles(target),
+              styles: defaultStyles(),
               slotImages,
             }
           : { ...current, slotImages }
@@ -857,6 +857,9 @@ function App() {
   }
 
   const openPreview = () => {
+    // Nothing floating (menus, hints, the frame toolbar) stays over Preview.
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    setToast(null)
     const output = renderThumbnail()
     if (output) setPreviewUrl(output.toDataURL("image/png"))
   }
@@ -1024,7 +1027,7 @@ function App() {
                         iconStart="arrow-back"
                         onClick={clearTemplate}
                         size="sm"
-                        text="Empty layout"
+                        text="Base layout"
                       />
                     ) : null}
                   </Flex>
@@ -1085,7 +1088,7 @@ function App() {
                     />
                     <Button color="white" iconStart="eye" onClick={openPreview} text="Preview" />
 
-                    {selectedPlacement && slot !== null && gestureKind === null ? (
+                    {selectedPlacement && slot !== null && gestureKind === null && !previewUrl ? (
                       <div className="frame-toolbar-anchor" style={toolbarPosition(selectedPlacement)}>
                         <FrameToolbar
                           key={slot}
@@ -1172,7 +1175,7 @@ function App() {
                 />
                 <Divider />
                 <StylePanel
-                  startStyle={templateCardStyle(template.cards[activeSlot]?.size)}
+                  sizeLocked={template.cards[activeSlot]?.scale !== undefined}
                   borderMatchesAllFrames={borderMatchesAllFrames}
                   enabled={slot !== null}
                   onApplyBorderToAll={applyBorderToAllFrames}
@@ -1200,7 +1203,7 @@ function App() {
         </div>
       </Box>
 
-      {toast ? (
+      {toast && !previewUrl ? (
         <Layer>
           <div className="toast-anchor">
             <Toast

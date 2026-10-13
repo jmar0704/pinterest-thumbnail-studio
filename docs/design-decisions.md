@@ -24,6 +24,12 @@ Format: **Context** → **Options** → **Decision** → **Why**.
 - **Decision:** Dragging is clamped. Size, rotation, and tilt changes may cross the margin, which shows a warning: a banner with an icon and text, an icon on the frame tile, and an outline on the card. Sides a template marks as `allowBleed` are exempt.
 - **Why:** A card at maximum size is taller than the safe area, so clamping can't always work. Warning keeps people in control without silent snapping.
 
+### Fixed-size template cards
+- **Context:** Showcase's back card is 0.737× in Figma, smaller than any Size step.
+- **Options:** add an XS step; shrink S; map it to S (0.9×); keep the exact scale and lock it.
+- **Decision:** Keep the exact scale, as a fixed `"scale"` on the card. Its Size control is greyed out with "Size is fixed by this template", and it gets no resize handles.
+- **Why:** The template renders exactly as designed, and nobody can break the composition the smaller card exists for. Mapping it to S was tried first, but it changed the design.
+
 ### templates.json is the source of truth
 - **Decision:** Layouts were extracted from Figma, and now live in the JSON. Rendering bugs are fixed in code, never by editing geometry. New templates are extracted from Figma with the Plugin API, using each card's absolute transform for exact centers and rotations.
 - **Why:** The templates are the product's value. One canonical file keeps the app, the picker illustrations, and the export in sync.
@@ -95,7 +101,7 @@ Format: **Context** → **Options** → **Decision** → **Why**.
 ### Templates: from folder to simple picker
 - **First:** picking a template opened a settings card under the grid.
 - **Then:** the tile animated into a folder-style settings panel.
-- **Final:** the settings (Scatter, Shuffle, Copy recipe) were removed. Picking a template just applies it, and tiles have hover, selected, and pressed states.
+- **Final:** the settings (Scatter, Shuffle, Copy recipe) were removed. Picking a template just applies it, tiles have hover, selected, and pressed states, and templates are listed by frame count (fewest first).
 - **Why:** The settings added complexity without enough value. The picker scales to more templates without scrolling to find settings.
 
 ### Panels
