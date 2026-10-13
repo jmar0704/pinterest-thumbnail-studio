@@ -204,14 +204,12 @@ body {
 }
 
 .step-control [role="tab"] {
-  transition:
-    background-color 160ms ease-out,
-    box-shadow 160ms ease-out;
+  transition: background-color 160ms ease-out;
 }
 
+/* Hover: the design system's darker gray (secondary-weak), no shadow. */
 .step-control [role="tab"][aria-selected="false"]:hover {
-  background-color: var(--color-background-elevation-accent);
-  box-shadow: var(--elevation-raised-top);
+  background-color: var(--color-background-secondary-weak);
 }
 
 @media (prefers-reduced-motion: reduce) {

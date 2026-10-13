@@ -26,8 +26,12 @@ import StylePanel from "@/components/StylePanel"
 import TemplatePicker from "@/components/TemplatePicker"
 import useEdgeContrastWarnings, { type EdgeCheckItem } from "@/hooks/useEdgeContrastWarnings"
 import useHistory from "@/hooks/useHistory"
-import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
-import { defaultCardStyle, isDefaultStyle, type CardStyle } from "@/data/styleOptions"
+import { canvas, findTemplate, maxCards, templates, type Template } from "@/data/templates"
+import {
+  isDefaultStyle,
+  templateCardStyle,
+  type CardStyle,
+} from "@/data/styleOptions"
 import {
   defaultBackgroundStyle,
   isDefaultBackgroundStyle,
@@ -91,8 +95,9 @@ type Gesture = {
 type Point = { x: number; y: number }
 
 const zeroOffsets = (): Offset[] => Array.from({ length: maxCards }, () => ({ x: 0, y: 0 }))
-const defaultStyles = (): CardStyle[] =>
-  Array.from({ length: maxCards }, () => ({ ...defaultCardStyle }))
+/** Every slot's starting style for a layout (some template cards start smaller). */
+const defaultStyles = (layout?: Template): CardStyle[] =>
+  Array.from({ length: maxCards }, (_, slot) => templateCardStyle(layout?.cards[slot]?.size))
 
 const initialDoc: Doc = {
   templateId: null,
@@ -137,29 +142,32 @@ function revokeUnused(dropped: Doc[], retained: Doc[]) {
 }
 
 /**
- * The background fix for an image whose edges blend in: lighten the
- * background when the image's edges are darker than it, darken it when
- * they're lighter. Uses an existing color: the same hue's other tone, or
- * White / Gray deep. `id` is null when there's no such color to switch to.
+ * Luminance where a color contrasts equally with black and white. Edges
+ * above it read as light, below it as dark.
+ */
+const midLuminance = 0.179
+
+/**
+ * The background fix for an image whose edges blend in, decided by the
+ * image's own edges: a light image gets "Darken background", a dark image
+ * "Lighten background". Uses an existing color: the same hue's other tone,
+ * or White / Gray deep. `id` is null when there's no such color to switch to
+ * (the button then shows but is disabled).
  */
 function backgroundFixFor(result: EdgeContrastResult, current: ColorTemplate) {
   const weak = result.weakSides.flatMap((side) => result.sides[side] ?? [])
   const edge = weak.reduce((total, item) => total + item.edgeLuminance, 0) / Math.max(1, weak.length)
-  const background =
-    weak.reduce((total, item) => total + item.backgroundLuminance, 0) / Math.max(1, weak.length)
-  const lighten = edge <= background
+  const lighten = edge < midLuminance
   const hue = current.id.replace(/-(light|deep)$/, "")
-  const targetId = lighten
-    ? current.tone === "deep"
-      ? `${hue}-light`
-      : current.id === whiteColorTemplate.id
-        ? null
-        : whiteColorTemplate.id
-    : current.tone === "light"
-      ? current.id === whiteColorTemplate.id
-        ? "gray-deep"
-        : `${hue}-deep`
-      : null
+  let targetId: string | null
+  if (lighten) {
+    if (current.tone === "deep") targetId = `${hue}-light`
+    else targetId = current.id === whiteColorTemplate.id ? null : whiteColorTemplate.id
+  } else if (current.tone === "light") {
+    targetId = current.id === whiteColorTemplate.id ? "gray-deep" : `${hue}-deep`
+  } else {
+    targetId = current.id === "gray-deep" ? null : "gray-deep"
+  }
   const target = colorTemplates.find((item) => item.id === targetId) ?? null
   return {
     id: target?.id ?? null,
@@ -378,7 +386,7 @@ function App() {
           warning: readToken("--color-icon-warning"),
           guide: readToken("--color-border-default"),
           handleFill: readToken("--color-background-default"),
-          tint: readToken("--color-background-warning-base"),
+          edgeWarning: readToken("--color-background-warning-base"),
         },
       },
     })
@@ -542,7 +550,7 @@ function App() {
       ...current,
       templateId: id,
       offsets: zeroOffsets(),
-      styles: defaultStyles(),
+      styles: defaultStyles(findTemplate(id)),
     }))
     setSelectedSlot(0)
   }
@@ -574,7 +582,7 @@ function App() {
       ...current,
       offsets: current.offsets.map((offset, index) => (index === slot ? { x: 0, y: 0 } : offset)),
       styles: current.styles.map((style, index) =>
-        index === slot ? { ...defaultCardStyle } : style,
+        index === slot ? templateCardStyle(template.cards[slot]?.size) : style,
       ),
     }))
 
@@ -583,7 +591,7 @@ function App() {
     commit((current) => ({
       ...current,
       offsets: zeroOffsets(),
-      styles: defaultStyles(),
+      styles: defaultStyles(template),
       colors: whiteColorTemplate.id,
       backgroundStyle: { ...defaultBackgroundStyle },
     }))
@@ -592,10 +600,16 @@ function App() {
 
   const isMoved = (offset: Offset) => offset.x !== 0 || offset.y !== 0
   const isFrameChanged =
-    slot !== null && (isMoved(doc.offsets[slot]) || !isDefaultStyle(doc.styles[slot]))
+    slot !== null &&
+    (isMoved(doc.offsets[slot]) ||
+      !isDefaultStyle(doc.styles[slot], templateCardStyle(template.cards[slot]?.size)))
   const canResetAll =
     doc.offsets.slice(0, cardCount).some(isMoved) ||
-    doc.styles.slice(0, cardCount).some((style) => !isDefaultStyle(style)) ||
+    doc.styles
+      .slice(0, cardCount)
+      .some(
+        (style, index) => !isDefaultStyle(style, templateCardStyle(template.cards[index]?.size)),
+      ) ||
     doc.colors !== whiteColorTemplate.id ||
     !isDefaultBackgroundStyle(doc.backgroundStyle)
 
@@ -650,7 +664,7 @@ function App() {
               ...current,
               templateId: target.id,
               offsets: zeroOffsets(),
-              styles: defaultStyles(),
+              styles: defaultStyles(target),
               slotImages,
             }
           : { ...current, slotImages }
@@ -1158,6 +1172,7 @@ function App() {
                 />
                 <Divider />
                 <StylePanel
+                  startStyle={templateCardStyle(template.cards[activeSlot]?.size)}
                   borderMatchesAllFrames={borderMatchesAllFrames}
                   enabled={slot !== null}
                   onApplyBorderToAll={applyBorderToAllFrames}

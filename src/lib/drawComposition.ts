@@ -22,7 +22,7 @@ export type Overlay = {
   selectedSlot: number | null
   /** Slots that cross the margin on a side the template doesn't allow. */
   violatingSlots: Set<number>
-  /** Images whose edges blend into the background: tinted, preview only. */
+  /** Images whose edges blend into the background: outlined, preview only. */
   tintSlots: Set<number>
   showMarginGuide: boolean
   /** Center lines the dragged card is snapped to. */
@@ -37,8 +37,8 @@ export type Overlay = {
     warning: string
     guide: string
     handleFill: string
-    /** Low edge contrast tint. */
-    tint: string
+    /** Low edge contrast outline. */
+    edgeWarning: string
   }
 }
 
@@ -211,10 +211,11 @@ function drawOverlay(
 ) {
   const px = overlay.pxPerCss
 
-  const outline = (placement: Placement, color: string, width: number) => {
+  /** Stroke a card's edge; `offset` (canvas px) pushes it outward. */
+  const outline = (placement: Placement, color: string, width: number, offset = 0) => {
     context.save()
     applyCardTransform(context, placement)
-    cardPath(context)
+    cardPath(context, offset / placement.scale)
     context.strokeStyle = color
     context.lineWidth = width / placement.scale
     context.stroke()
@@ -275,16 +276,12 @@ function drawOverlay(
     line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 })
   }
 
-  // Low edge contrast: a quiet warning tint over the image.
+  // Low edge contrast: an 8px warning stroke around the image.
   for (const placement of placements) {
-    if (!overlay.tintSlots.has(placement.slot)) continue
-    context.save()
-    applyCardTransform(context, placement)
-    cardPath(context)
-    context.globalAlpha = 0.24
-    context.fillStyle = overlay.colors.tint
-    context.fill()
-    context.restore()
+    if (overlay.tintSlots.has(placement.slot)) {
+      // Sits just outside the edge so the selection outline never covers it.
+      outline(placement, overlay.colors.edgeWarning, 8, 8)
+    }
   }
 
   for (const placement of placements) {

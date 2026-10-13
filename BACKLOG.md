@@ -74,6 +74,15 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Templates and edits (2026-10-13, third pass)
+
+- Four templates extracted from Figma page "Templates 2" (122:251) with the Plugin API (exact centers and rotations from each card's absolute transform): Trail (7 cards; bleeds right, bottom, left), Showcase (2; the 0.74× back card starts on Size S, 0.9×, by request), Table spread (5; top, bottom), Strips (7; all sides). Bleed sides were computed from the geometry, so none of them warn at their defaults. Template cards can now carry a starting Size step, which resets honor.
+- Template tiles stack the frame count under the name.
+- 3D tilt reads −30° · −15° · Off · +15° · +30°.
+- Step-control hover uses the darker `--color-background-secondary-weak`, with no shadow.
+- Lighten/Darken background is decided by the image's own edge lightness (light image → Darken), fixing the greyed-out "Lighten" on light images.
+- The low edge contrast canvas cue is an 8px warning-color stroke just outside the frame (preview only) instead of a tint.
+
 ## Edits (2026-10-13, second pass)
 
 - Low edge contrast: no marker on the canvas. Flagged images get a warning icon on their frame tile (Frames panel) and a low-opacity warning tint (`--color-background-warning-base`, preview only, never exported). The notice is built from Gestalt primitives with the icon beside its title, and always offers two full-width medium buttons that match Export: Lighten or Darken background (by whether the image edges are darker or lighter than the background; disabled when no such color exists) and Add outline. Add outline gives every frame without a border a Thin border and shows a Gestalt Toast: "Outline added to all frames to maintain consistency".

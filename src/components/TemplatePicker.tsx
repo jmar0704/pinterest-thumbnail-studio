@@ -33,7 +33,8 @@ export default function TemplatePicker({
                       <LayoutThumbnail selected={selected} template={template} />
                     </Box>
                   </Box>
-                  <Flex justifyContent="between">
+                  {/* Name above count, so long names never collide with it. */}
+                  <Flex direction="column">
                     <Text color={selected ? "inverse" : "default"} size="200" weight="bold">
                       {template.name}
                     </Text>

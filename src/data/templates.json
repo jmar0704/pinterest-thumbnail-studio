@@ -2,7 +2,11 @@
   "source": {
     "figmaFile": "XyvXAvzsiYBcNrLaeaslrO",
     "figmaPage": "Templates (85:874)",
-    "extractedFrom": "Figma Plugin API relativeTransform (exact, not bounding boxes)"
+    "extractedFrom": "Figma Plugin API relativeTransform (exact, not bounding boxes)",
+    "figmaPages": [
+      "Templates (85:874)",
+      "Templates 2 (122:251)"
+    ]
   },
   "conventions": {
     "units": "px, in canvas coordinates (0,0 = top-left of the 1600x900 board)",
@@ -104,6 +108,60 @@
         { "z": 7, "cx": -164, "cy": 828, "rotate": 0 },
         { "z": 8, "cx": 1764, "cy": 16, "rotate": 0 },
         { "z": 9, "cx": 1764, "cy": 698, "rotate": 0 }
+      ]
+    },
+    {
+      "id": "trail",
+      "name": "Trail",
+      "figmaNodeId": "122:252",
+      "allowBleed": ["right", "bottom", "left"],
+      "cards": [
+        { "z": 0, "cx": 1490.45, "cy": 778.84, "rotate": -28 },
+        { "z": 1, "cx": 1266.62, "cy": 700.3, "rotate": -16 },
+        { "z": 2, "cx": 112.85, "cy": 411.07, "rotate": -58 },
+        { "z": 3, "cx": 398.06, "cy": 447.36, "rotate": -38 },
+        { "z": 4, "cx": 570.47, "cy": 469.8, "rotate": -28 },
+        { "z": 5, "cx": 999.2, "cy": 646.15, "rotate": -8 },
+        { "z": 6, "cx": 799.97, "cy": 480.47, "rotate": -7.99 }
+      ]
+    },
+    {
+      "id": "showcase",
+      "name": "Showcase",
+      "figmaNodeId": "122:269",
+      "allowBleed": [],
+      "note": "In Figma the back card is 0.74x (331.8x479.2); it maps to the Size control's S step (0.9x).",
+      "cards": [
+        { "z": 0, "cx": 616.83, "cy": 449.43, "rotate": -20, "size": "S" },
+        { "z": 1, "cx": 942.02, "cy": 450.13, "rotate": 10 }
+      ]
+    },
+    {
+      "id": "table-spread",
+      "name": "Table spread",
+      "figmaNodeId": "122:270",
+      "allowBleed": ["top", "bottom"],
+      "cards": [
+        { "z": 0, "cx": 1187, "cy": 703, "rotate": 0 },
+        { "z": 1, "cx": 413, "cy": 33, "rotate": 0 },
+        { "z": 2, "cx": 1046.27, "cy": 450.35, "rotate": 20 },
+        { "z": 3, "cx": 613.27, "cy": 617.35, "rotate": -40 },
+        { "z": 4, "cx": 803.68, "cy": 450, "rotate": -20 }
+      ]
+    },
+    {
+      "id": "strips",
+      "name": "Strips",
+      "figmaNodeId": "122:271",
+      "allowBleed": ["top", "right", "bottom", "left"],
+      "cards": [
+        { "z": 0, "cx": 108, "cy": 450, "rotate": 0 },
+        { "z": 1, "cx": 800, "cy": 450, "rotate": 0 },
+        { "z": 2, "cx": 1492, "cy": 450, "rotate": 0 },
+        { "z": 3, "cx": 433, "cy": 727, "rotate": 0 },
+        { "z": 4, "cx": 1187, "cy": 727, "rotate": 0 },
+        { "z": 5, "cx": 433, "cy": 33, "rotate": 0 },
+        { "z": 6, "cx": 1187, "cy": 33, "rotate": 0 }
       ]
     }
   ]

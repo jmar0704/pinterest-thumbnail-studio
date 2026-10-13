@@ -24,11 +24,11 @@ export const rotateSteps: Step<number>[] = [
  * the card to face left, positive to face right.
  */
 export const tiltSteps: Step<number>[] = [
-  { label: "L 30°", value: -30, description: "Strong turn to the left" },
-  { label: "L 15°", value: -15, description: "Slight turn to the left" },
+  { label: "−30°", value: -30, description: "Strong turn to the left" },
+  { label: "−15°", value: -15, description: "Slight turn to the left" },
   { label: "Off", value: 0, description: "Flat" },
-  { label: "R 15°", value: 15, description: "Slight turn to the right" },
-  { label: "R 30°", value: 30, description: "Strong turn to the right" },
+  { label: "+15°", value: 15, description: "Slight turn to the right" },
+  { label: "+30°", value: 30, description: "Strong turn to the right" },
 ]
 
 /** Border width in canvas px. */
@@ -62,12 +62,22 @@ export const defaultCardStyle: CardStyle = {
   dropShadow: 0,
 }
 
-export function isDefaultStyle(style: CardStyle) {
+/**
+ * A card's starting style in a template: the defaults, plus the Size step
+ * the template asks for (e.g. Showcase's back card starts on S).
+ */
+export function templateCardStyle(sizeLabel?: string): CardStyle {
+  const size = sizeSteps.findIndex((step) => step.label === sizeLabel)
+  return { ...defaultCardStyle, size: size === -1 ? defaultCardStyle.size : size }
+}
+
+/** Whether a card's style still matches its template's starting style. */
+export function isDefaultStyle(style: CardStyle, start: CardStyle = defaultCardStyle) {
   return (
-    style.size === defaultCardStyle.size &&
-    style.rotate === defaultCardStyle.rotate &&
-    style.tilt === defaultCardStyle.tilt &&
-    style.border === defaultCardStyle.border &&
-    style.dropShadow === defaultCardStyle.dropShadow
+    style.size === start.size &&
+    style.rotate === start.rotate &&
+    style.tilt === start.tilt &&
+    style.border === start.border &&
+    style.dropShadow === start.dropShadow
   )
 }

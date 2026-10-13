@@ -10,6 +10,11 @@ export type TemplateCard = {
   cy: number
   /** Degrees, clockwise positive. */
   rotate: number
+  /**
+   * The card's starting Size step label ("S", "M", …) when the design calls
+   * for a non-default size, e.g. Showcase's smaller back card. Default "M".
+   */
+  size?: string
 }
 
 export type Template = {
@@ -18,6 +23,7 @@ export type Template = {
   figmaNodeId: string
   allowBleed: BleedSide[]
   cards: TemplateCard[]
+  note?: string
 }
 
 export type Canvas = {

@@ -1,6 +1,6 @@
 # Thumbnail Studio
 
-Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails by placing one image per Pinterest-style rounded card (up to ten, in Grid). Users pick a template (Arc, Stack, Spread, Grid), drag cards within the margins, style each card with stepped controls, and export a PNG.
+Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails by placing one image per Pinterest-style rounded card (up to ten, in Grid). Users pick a template (Arc, Stack, Spread, Grid, Trail, Showcase, Table spread, Strips), drag cards within the margins, style each card with stepped controls, and export a PNG.
 
 The value of the tool is its templates. Layouts were designed by hand in Figma and now live in `src/data/templates.json`; they must render exactly as that file specifies.
 
@@ -45,10 +45,10 @@ Canvas drawing code can't read CSS variables directly. If it needs a UI token, r
 
 ## Templates
 
-The source of truth is `src/data/templates.json`. It was first extracted from Figma file `XyvXAvzsiYBcNrLaeaslrO`, page "Templates" (node `85:874`), and each template records its Figma node ID. Since 2026-10-08 the geometry is maintained in the JSON directly (the Grid's left and right edge columns were added there), so Figma may lag behind it.
+The source of truth is `src/data/templates.json`. It was first extracted from Figma file `XyvXAvzsiYBcNrLaeaslrO`, pages "Templates" (node `85:874`) and "Templates 2" (node `122:251`), and each template records its Figma node ID. Since 2026-10-08 the geometry is maintained in the JSON directly (the Grid's left and right edge columns were added there), so Figma may lag behind it.
 
 - **Don't edit template geometry to fix a rendering bug.** If a template renders differently from its JSON, the bug is in the rendering code (for example, `gestalt.css` sets `svg * { transform-box: fill-box }`, which broke the picker thumbnails' rotation pivots). Change the JSON only when the design itself changes.
-- **Cards are always 450×650 with a 48 corner radius.** Templates only change position, rotation, and stacking order.
+- **Cards are always 450×650 with a 48 corner radius.** Templates change position, rotation and stacking order; a card may also name a starting Size step (`"size": "S"`), as Showcase's back card does (0.74× in Figma, mapped to S at 0.9×).
 - **`cx` and `cy` are card centers** in canvas pixels. **`rotate` is in degrees, clockwise positive**, already converted from Figma's counter-clockwise convention. **`z` of 0 is the back.**
 - **The 48px margin is the only hard layout rule.** A card may cross it only on sides listed in that template's `allowBleed`. The canvas clips at its edges.
 - **The 5×5 grid (20px gutter) is a visual guide only.** Nothing snaps to it.
