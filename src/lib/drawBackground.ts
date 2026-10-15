@@ -26,14 +26,25 @@ function inkFor(colors: ColorTemplate, alpha: number) {
 /** Ring sizes: the innermost ring's radius. Rings are true circles. */
 const ringBase = { radius: 220, lineWidth: 4, dash: [20, 16] }
 
+/**
+ * Options for small previews: `strokeScale` thickens ring lines and dashes so
+ * they stay visible when the whole canvas is drawn at thumbnail size.
+ */
+export type PatternDrawOptions = { strokeScale?: number }
+
 /** Concentric dashed circles centered on the canvas. */
-function drawRings(context: CanvasRenderingContext2D, colors: ColorTemplate, style: BackgroundStyle) {
+function drawRings(
+  context: CanvasRenderingContext2D,
+  colors: ColorTemplate,
+  style: BackgroundStyle,
+  { strokeScale = 1 }: PatternDrawOptions,
+) {
   const count = ringCountSteps[style.rings].value
   const gap = ringGapSteps[style.gap].value
   context.save()
   context.strokeStyle = inkFor(colors, colors.tone === "light" ? 0.35 : 0.5)
-  context.lineWidth = ringBase.lineWidth
-  context.setLineDash(ringBase.dash)
+  context.lineWidth = ringBase.lineWidth * strokeScale
+  context.setLineDash(ringBase.dash.map((length) => length * strokeScale))
   context.lineCap = "round"
   for (let ring = 0; ring < count; ring += 1) {
     const radius = ringBase.radius + ring * gap
@@ -143,8 +154,9 @@ export function drawBackgroundPattern(
   context: CanvasRenderingContext2D,
   colors: ColorTemplate,
   style: BackgroundStyle,
+  options: PatternDrawOptions = {},
 ) {
   const pattern = patternSteps[style.pattern].value
-  if (pattern === "rings") drawRings(context, colors, style)
+  if (pattern === "rings") drawRings(context, colors, style, options)
   if (pattern === "fractal") context.drawImage(renderFractal(colors, style), 0, 0)
 }

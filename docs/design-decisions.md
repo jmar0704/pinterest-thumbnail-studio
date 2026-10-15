@@ -11,12 +11,12 @@ Format: **Context** → **Options** → **Decision** → **Why**.
 ### Stepped controls instead of free sliders
 - **Context:** The original sliders ran 0–100 with no units. They could push cards to extremes, and at their default values they didn't even reproduce the template (every card rendered at 90%).
 - **Options:** keep the 0–100 sliders; sliders with real units; stepped segments.
-- **Decision:** Stepped segments built on Gestalt `SegmentedControl`: Size S–XL, Rotate ±10° in 5° steps, 3D tilt −30° to +30°, and Border None/Thin/Mid/Thick.
+- **Decision:** Stepped segments built on Gestalt `SegmentedControl`: Size S–XL, Rotate ±10° in 5° steps, 3D tilt −30° to +30°, and Border None/Thin/Mid/Thick (Border later became an on/off preset, see below).
 - **Why:** The tool is for non-designers as much as designers. Steps keep every result "on brand", make defaults explicit, and keep each template exactly as designed at default.
 
 ### Style is per frame
 - **Options:** global styles with per-frame overrides; per frame only; global only.
-- **Decision:** Per frame. Two exceptions exist for consistency: **Apply to all** for Border, and **Add outline**, which adds a border to every frame.
+- **Decision:** Per frame. **Add outline** (edge contrast notice) is the one shortcut that turns the border on for every frame. Border's earlier **Apply to all** went away when Border became a preset.
 - **Why:** Designers wanted control over individual frames. The "all frames" shortcuts cover the common case where consistency matters more.
 
 ### The 48px margin
@@ -83,6 +83,15 @@ Format: **Context** → **Options** → **Decision** → **Why**.
 - **Decision:** 19 color templates (White, plus 9 hues in a light and a deep version) set the background and the glow color together. The glow is 25% opacity, 50px blur, with 11px or 16px spread. Since canvas has no spread, the glow is drawn by blurring an enlarged copy of the card. Drop shadow is a per-frame on/off switch that lives with the colors.
 - **Why:** The pairing is always correct by construction, and the glow color makes sense next to the background it belongs to.
 
+### Border as a preset (2026-10-15)
+- **Context:** Drop shadow is an on/off preset whose color comes from the background. Border already took its color from the background, but had four widths in Frame style.
+- **Decision:** Border is now an on/off switch at the Mid width (8px), per frame, beside Drop shadow under the Background colors. One shared line under both says which frame they apply to. Frame style keeps Size, Rotate and 3D tilt.
+- **Why:** Both are looks that depend on the background, so they live with it and behave the same way. One good width removes a choice non-designers didn't need.
+
+### Background style tiles (2026-10-15)
+- **Decision:** Background style sits above Frame style. None, Rings and Fractal are tiles with the template tiles' look, hover and press states, each previewing its pattern in the current colors and settings. Picking Rings or Fractal opens its settings in a panel that unfolds under the tiles like a folder (its tab points at the chosen tile); pressing the chosen tile again folds it away. Reduced motion turns the animation off.
+- **Why:** Patterns are as visual as templates, so they're picked the same way. Unlike templates they have settings, and the folder keeps them attached to the tile they belong to.
+
 ### Background patterns
 - **Decision:** A **Background style** dropdown offers **Rings** (dashed concentric circles; count and gap) and **Fractal** (fluted-glass ribs; rib width and wave). Patterns take their colors from the color template, so the chosen background dominates and its pair only accents it.
 - **Why:** Patterns add variety without leaving the palette. "Ripples" was renamed Fractal, and rebalanced after light and deep versions of a hue came out looking the same.
@@ -102,7 +111,7 @@ Format: **Context** → **Options** → **Decision** → **Why**.
   - **Final version:** a warning icon on the frame tile, an 8px orange stroke just outside the frame on the canvas (preview only, never exported), and a notice with the icon beside the title and two buttons that match the Export button.
 - **Fixes:**
   - **Lighten/Darken background:** decided by the image's own lightness, using an existing color.
-  - **Add outline:** adds a Thin border to every frame and shows a toast: "Outline added to all frames to maintain consistency". This keeps frames consistent instead of outlining just one.
+  - **Add outline:** turns the Border preset on for every frame and shows a toast: "Outline added to all frames to maintain consistency". This keeps frames consistent instead of outlining just one.
 - **Why:** It's a design-quality aid, not a compliance claim, since photos are exempt from WCAG 1.4.11. It's quiet and non-blocking, never color-only, and its fixes reuse existing controls.
 
 ---

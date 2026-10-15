@@ -32,12 +32,13 @@ export const tiltSteps: Step<number>[] = [
   { label: "+30°", value: 30, description: "strong turn to the right" },
 ]
 
-/** Border width in canvas px. */
+/**
+ * Border width in canvas px. A preset like the drop shadow: on or off per
+ * frame, always the Mid width, in a color picked to suit the background.
+ */
 export const borderSteps: Step<number>[] = [
-  { label: "None", value: 0, description: "no border" },
-  { label: "Thin", value: 4, description: "4 px" },
-  { label: "Mid", value: 8, description: "8 px" },
-  { label: "Thick", value: 12, description: "12 px" },
+  { label: "Off", value: 0, description: "no border" },
+  { label: "On", value: 8, description: "8 px, colored to suit the background" },
 ]
 
 /** Drop shadow uses the color template's paired glow (see artworkPalette.ts). */

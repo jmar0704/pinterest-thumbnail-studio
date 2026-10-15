@@ -75,6 +75,11 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Font weight 500 (Medium): Gestalt has 400/600/700 only. Left-sidebar helper text (upload hint, color name, drop shadow switch label, "Pick a template…") uses Medium 500 by user decision (2026-10-15), defined once as `--font-weight-medium` in `index.css` with the `.text-medium` wrapper.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Edits (2026-10-15, presets and background style)
+
+- Border is now an on/off preset (Mid, 8px, colored to suit the background), per frame, beside Drop shadow under the Background colors; a shared line says which frame they apply to. Removed from Frame style along with "Apply to all". Add outline turns it on for every frame.
+- Background style moved above Frame style. None/Rings/Fractal are tiles like the template tiles (live pattern previews); Rings and Fractal settings unfold in a folder panel under the tiles.
+
 ## Edits (2026-10-14, typography and patterns)
 
 - Tilted grid and Wave re-extracted from the hand-edited Figma boards ("Templates 3": Wave 136:385, Tilted Grid 137:474). Tilted grid is now −15°; one top-right edge frame shows only about 2% (as designed).
@@ -126,7 +131,7 @@ Six tilt ideas (Turned row, Live trio, Peek, Coverflow, Carousel, Facing rows) w
 
 - Low edge contrast: no marker on the canvas. Flagged images get a warning icon on their frame tile (Frames panel) and a low-opacity warning tint (`--color-background-warning-base`, preview only, never exported). The notice is built from Gestalt primitives with the icon beside its title, and always offers two full-width medium buttons that match Export: Lighten or Darken background (by whether the image edges are darker or lighter than the background; disabled when no such color exists) and Add outline. Add outline gives every frame without a border a Thin border and shows a Gestalt Toast: "Outline added to all frames to maintain consistency".
 - Clicking empty space in the center stage (outside the canvas) clears the frame selection; sidebars and the header don't.
-- Border has an "Apply to all" button that copies the selected frame's border to every frame (toast confirms).
+- Border had an "Apply to all" button (removed 2026-10-15 when Border became an on/off preset).
 - Rings are true circles. "Ripples" is now "Fractal", and it's dominated by the chosen background color (its pair only accents it), so light and deep versions of a hue look clearly different.
 - Export button reads "Export", with no icon.
 - Regular-weight 12px text is now 14px, matching "No frame selected" (the bold frame-number badges stay 12px). Headings are sentence case; "Thumbnail Studio" is the product name.

@@ -105,6 +105,12 @@ Commit `54953fb`.
 - Tilted grid and Wave were edited by hand in Figma and copied back exactly.
 - Bold headings and control labels share the Frame style title's 16px bold; sentence case everywhere; Rings gained a 6th step.
 
+## 13. Presets and background tiles (Oct 15)
+
+- Left sidebar helper text moved to Medium 500; Fractal's wave steps were made clearly different.
+- **Border** became an on/off preset beside Drop shadow.
+- **Background style** moved above Frame style, with pattern tiles like the template tiles and a folder panel for each pattern's settings.
+
 ## Ground rules that held throughout
 
 - **Design system:** Gestalt components first. Custom components are composed from Gestalt primitives and semantic tokens. Raw colors exist only in the artwork palette and the template JSON.

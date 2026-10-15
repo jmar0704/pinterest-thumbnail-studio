@@ -1,6 +1,6 @@
 import { canvas, card } from "@/data/templates"
 import type { BackgroundStyle } from "@/data/backgroundOptions"
-import { drawBackgroundPattern } from "@/lib/drawBackground"
+import { drawBackgroundPattern, type PatternDrawOptions } from "@/lib/drawBackground"
 import {
   glow,
   imageBackingFill,
@@ -127,10 +127,11 @@ export function drawBackgroundLayer(
   context: CanvasRenderingContext2D,
   colors: ColorTemplate,
   backgroundStyle: BackgroundStyle,
+  options: PatternDrawOptions = {},
 ) {
   context.fillStyle = colors.background
   context.fillRect(0, 0, canvas.width, canvas.height)
-  drawBackgroundPattern(context, colors, backgroundStyle)
+  drawBackgroundPattern(context, colors, backgroundStyle, options)
 }
 
 /**

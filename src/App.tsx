@@ -18,7 +18,7 @@ import "gestalt/dist/gestalt.css"
 import BackgroundStylePanel from "@/components/BackgroundStylePanel"
 import BlogPreview from "@/components/BlogPreview"
 import ColorTemplatePicker from "@/components/ColorTemplatePicker"
-import DropShadowSwitch from "@/components/DropShadowSwitch"
+import FrameSwitch from "@/components/FrameSwitch"
 import EdgeContrastNotice from "@/components/EdgeContrastNotice"
 import FrameChips from "@/components/FrameChips"
 import FrameToolbar from "@/components/FrameToolbar"
@@ -715,34 +715,19 @@ function App() {
   }
 
   /**
-   * "Add outline" from the edge contrast notice: a Thin border on every frame
-   * that has none (thicker borders stay), so the frames stay consistent.
+   * "Add outline" from the edge contrast notice: turns the Border preset on
+   * for every frame, so the frames stay consistent.
    */
   const addOutlineToAllFrames = () => {
     commit((current) => ({
       ...current,
       styles: current.styles.map((style, index) =>
-        index < cardCount && style.border === 0 ? { ...style, border: 1 } : style,
+        index < cardCount ? { ...style, border: 1 } : style,
       ),
     }))
     showToast("Outline added to all frames to maintain consistency")
   }
 
-  /** Border control's "Apply to all": the selected frame's border on every frame. */
-  const applyBorderToAllFrames = () => {
-    if (slot === null) return
-    const border = doc.styles[slot].border
-    commit((current) => ({
-      ...current,
-      styles: current.styles.map((style, index) =>
-        index < cardCount ? { ...style, border } : style,
-      ),
-    }))
-    showToast("Border applied to all frames")
-  }
-  const borderMatchesAllFrames =
-    slot !== null &&
-    doc.styles.slice(0, cardCount).every((style) => style.border === doc.styles[slot].border)
 
   /** Removes the selected frame's image only; the frame itself stays. */
   const deleteImage = () => {
@@ -1005,12 +990,32 @@ function App() {
                     templates={colorTemplates}
                     value={doc.colors}
                   />
-                  <DropShadowSwitch
-                    onChange={(on) => updateStyle({ dropShadow: on ? 1 : 0 })}
-                    onAnnounce={announce}
-                    slot={slot}
-                    switched={doc.styles[activeSlot].dropShadow === 1}
-                  />
+                  {/* Per-frame presets colored from the background, side by side. */}
+                  <Flex direction="column" gap={2}>
+                    <Flex gap={6}>
+                      <FrameSwitch
+                        hasFrame={slot !== null}
+                        id="drop-shadow-switch"
+                        label="Drop shadow"
+                        onAnnounce={announce}
+                        onChange={(on) => updateStyle({ dropShadow: on ? 1 : 0 })}
+                        switched={doc.styles[activeSlot].dropShadow === 1}
+                      />
+                      <FrameSwitch
+                        hasFrame={slot !== null}
+                        id="border-switch"
+                        label="Border"
+                        onAnnounce={announce}
+                        onChange={(on) => updateStyle({ border: on ? 1 : 0 })}
+                        switched={doc.styles[activeSlot].border === 1}
+                      />
+                    </Flex>
+                    <div className="text-medium">
+                      <Text color={slot !== null ? "default" : "subtle"} size="200">
+                        {slot !== null ? `Applies to frame ${slot + 1}` : "No frame selected"}
+                      </Text>
+                    </div>
+                  </Flex>
                 </Flex>
 
                 <Divider />
@@ -1177,20 +1182,8 @@ function App() {
                   text="Reset all"
                 />
                 <Divider />
-                <StylePanel
-                  sizeLocked={template.cards[activeSlot]?.scale !== undefined}
-                  startStyle={startStyleFor(template.cards[activeSlot] ?? {})}
-                  borderMatchesAllFrames={borderMatchesAllFrames}
-                  enabled={slot !== null}
-                  onApplyBorderToAll={applyBorderToAllFrames}
-                  expanded={styleExpanded}
-                  onChange={updateStyle}
-                  onExpandedChange={setStyleExpanded}
-                  slot={activeSlot}
-                  style={doc.styles[activeSlot]}
-                />
-                <Divider />
                 <BackgroundStylePanel
+                  colors={colorTemplate}
                   expanded={backgroundStyleExpanded}
                   onChange={(update) =>
                     commit((current) => ({
@@ -1200,6 +1193,17 @@ function App() {
                   }
                   onExpandedChange={setBackgroundStyleExpanded}
                   style={doc.backgroundStyle}
+                />
+                <Divider />
+                <StylePanel
+                  sizeLocked={template.cards[activeSlot]?.scale !== undefined}
+                  startStyle={startStyleFor(template.cards[activeSlot] ?? {})}
+                  enabled={slot !== null}
+                  expanded={styleExpanded}
+                  onChange={updateStyle}
+                  onExpandedChange={setStyleExpanded}
+                  slot={activeSlot}
+                  style={doc.styles[activeSlot]}
                 />
               </Flex>
             </Box>

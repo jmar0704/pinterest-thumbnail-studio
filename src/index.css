@@ -101,6 +101,67 @@ body {
   background-color: var(--color-background-selected-strong);
 }
 
+.pattern-thumbnail {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+ * Background style's settings unfold under the pattern tiles like a folder:
+ * the row height grows from 0 (grid-template-rows 0fr → 1fr) while the panel
+ * drops into place, and a tab points up at the chosen tile.
+ */
+.pattern-folder {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms ease-out;
+}
+
+.pattern-folder[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.pattern-folder-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pattern-folder-panel {
+  position: relative;
+  margin-top: var(--space-300);
+  padding: var(--space-400);
+  border: var(--g-border-width) solid var(--color-border-container);
+  border-radius: var(--rounding-300);
+  background-color: var(--color-background-default);
+  opacity: 0;
+  transform: translateY(calc(var(--space-300) * -1));
+  transform-origin: top;
+  transition:
+    opacity 200ms ease-out,
+    transform 240ms ease-out;
+}
+
+.pattern-folder[data-open="true"] .pattern-folder-panel {
+  opacity: 1;
+  transform: none;
+}
+
+/* The folder tab: a small square turned 45°, sharing the panel's border. */
+.pattern-folder-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--folder-tab-x);
+  width: var(--space-300);
+  height: var(--space-300);
+  background-color: var(--color-background-default);
+  border-top: var(--g-border-width) solid var(--color-border-container);
+  border-left: var(--g-border-width) solid var(--color-border-container);
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition: left 240ms ease-out;
+}
+
 .template-card-selected {
   fill: var(--color-background-selected-weak);
   stroke: var(--color-background-selected-base);
@@ -267,7 +328,10 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .template-tile,
-  .frame-action {
+  .frame-action,
+  .pattern-folder,
+  .pattern-folder-panel,
+  .pattern-folder-panel::before {
     transition: none;
   }
 }

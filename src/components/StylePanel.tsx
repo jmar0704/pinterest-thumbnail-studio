@@ -1,7 +1,6 @@
-import { Accordion, Box, Button, Flex, Icon, Text } from "gestalt"
+import { Accordion, Box, Flex, Icon, Text } from "gestalt"
 import StepControl from "@/components/StepControl"
 import {
-  borderSteps,
   rotateSteps,
   sizeSteps,
   tiltSteps,
@@ -10,14 +9,13 @@ import {
 } from "@/data/styleOptions"
 import { iconSizes } from "@/theme/sizes"
 
-// Drop shadow lives with the Background colors (DropShadowSwitch).
-type StepKey = Exclude<keyof CardStyle, "dropShadow">
+// Drop shadow and Border are presets with the Background colors (FrameSwitch).
+type StepKey = Exclude<keyof CardStyle, "dropShadow" | "border">
 
 const controls: { key: StepKey; label: string; steps: Step<unknown>[] }[] = [
   { key: "size", label: "Size", steps: sizeSteps },
   { key: "rotate", label: "Rotate", steps: rotateSteps },
   { key: "tilt", label: "3D tilt", steps: tiltSteps },
-  { key: "border", label: "Border", steps: borderSteps },
 ]
 
 /**
@@ -31,8 +29,6 @@ export default function StylePanel({
   expanded,
   onExpandedChange,
   onChange,
-  onApplyBorderToAll,
-  borderMatchesAllFrames,
   sizeLocked,
   startStyle,
 }: {
@@ -42,9 +38,6 @@ export default function StylePanel({
   expanded: boolean
   onExpandedChange: (expanded: boolean) => void
   onChange: (update: Partial<CardStyle>) => void
-  /** Copies the selected frame's border to every frame. */
-  onApplyBorderToAll: () => void
-  borderMatchesAllFrames: boolean
   /** The template fixes this frame's size (Showcase's back card). */
   sizeLocked: boolean
   /** The frame's starting style from its template; each control resets to it. */
@@ -74,18 +67,6 @@ export default function StylePanel({
                 defaultValue={startStyle[control.key]}
                 disabledNote={
                   control.key === "size" && sizeLocked ? "Size is fixed by this template" : undefined
-                }
-                action={
-                  control.key === "border" ? (
-                    <Button
-                      accessibilityLabel="Apply this border to all frames"
-                      color="transparent"
-                      disabled={borderMatchesAllFrames}
-                      onClick={onApplyBorderToAll}
-                      size="sm"
-                      text="Apply to all"
-                    />
-                  ) : undefined
                 }
                 key={control.key}
                 label={control.label}
