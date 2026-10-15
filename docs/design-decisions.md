@@ -70,6 +70,10 @@ Format: **Context** → **Options** → **Decision** → **Why**.
 - **Decision:** Blue. It started as `--color-border-focus` and became the solid `--color-icon-info` with a white halo after the accessibility audit.
 - **Why:** It uses semantic tokens only. The halo keeps it visible on light and deep backgrounds (1.4.11).
 
+### Duplicating frames (2026-10-15)
+- **Decision:** Duplicate is in the frame toolbar and on Cmd/Ctrl+D; Cmd/Ctrl+C and V copy and paste a frame. A copy keeps the image and style, takes the next empty frame, and grows the layout to the smallest template that fits when needed, up to the 10-frame maximum.
+- **Why:** Frames come from templates, so a new frame is the next empty one, or the next larger layout, exactly as when adding images. That keeps every result a designed template.
+
 ### Symmetry snapping
 - **Decision:** While dragging, a frame's center snaps to the canvas center lines within 12px, and the line is drawn. Keyboard nudges snap only when moving toward center.
 - **Why:** It makes manual centering easy, and a centered frame can still be nudged off center.

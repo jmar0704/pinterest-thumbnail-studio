@@ -15,7 +15,7 @@ type StepKey = Exclude<keyof CardStyle, "dropShadow" | "border">
 const controls: { key: StepKey; label: string; steps: Step<unknown>[] }[] = [
   { key: "size", label: "Size", steps: sizeSteps },
   { key: "rotate", label: "Rotate", steps: rotateSteps },
-  { key: "tilt", label: "3D tilt", steps: tiltSteps },
+  { key: "tilt", label: "3D Tilt", steps: tiltSteps },
 ]
 
 /**
@@ -90,7 +90,7 @@ export default function StylePanel({
       id="style-panel"
       items={[
         {
-          title: enabled ? `Frame style · frame ${slot + 1}` : "Frame style",
+          title: enabled ? `Frame Style · Frame ${slot + 1}` : "Frame Style",
           children: content,
         },
       ]}

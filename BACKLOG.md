@@ -75,6 +75,13 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Font weight 500 (Medium): Gestalt has 400/600/700 only. Left-sidebar helper text (upload hint, color name, drop shadow switch label, "Pick a template…") uses Medium 500 by user decision (2026-10-15), defined once as `--font-weight-medium` in `index.css` with the `.text-medium` wrapper.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Edits (2026-10-15, duplicate and headings)
+
+- Rings now starts at 6 rings, Medium gap.
+- Side panel headings are in Title Case; everything else stays sentence case.
+- Duplicate frame: a toolbar button, Cmd/Ctrl+D, or Cmd/Ctrl+C then Cmd/Ctrl+V. The copy (image and style) goes to the next empty frame after the source; if the layout is full it switches to the smallest template that fits, like adding images. Off at 10 frames ("Maximum of 10 frames reached") or when the frame has no image. Copy and paste is in-app only (not the system clipboard), and text fields and selected text keep their own shortcuts.
+- "Reset all" is now "Reset all frames", at the Export button's size (md, 16px).
+
 ## Edits (2026-10-15, presets and background style)
 
 - Border is now an on/off preset (Mid, 8px, colored to suit the background), per frame, beside Drop shadow under the Background colors; a shared line says which frame they apply to. Removed from Frame style along with "Apply to all". Add outline turns it on for every frame.

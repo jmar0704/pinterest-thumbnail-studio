@@ -403,6 +403,38 @@ function App() {
     imagesLoaded,
   ])
 
+  // Frame shortcuts: Cmd/Ctrl+D duplicates, Cmd/Ctrl+C copies, Cmd/Ctrl+V pastes.
+  const frameShortcuts = useRef<{
+    duplicateFrame: () => void
+    copyFrame: () => boolean
+    pasteFrame: () => boolean
+  } | null>(null)
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const modifier = isMac ? event.metaKey : event.ctrlKey
+      if (!modifier || event.shiftKey || event.altKey) return
+      const key = event.key.toLowerCase()
+      if (key !== "d" && key !== "c" && key !== "v") return
+      // Text fields and selected page text keep their own copy and paste.
+      const target = event.target as HTMLElement | null
+      if (target?.closest("input, textarea, [contenteditable='true'], [role='dialog']")) return
+      if (key !== "d" && window.getSelection()?.toString()) return
+      const actions = frameShortcuts.current
+      if (!actions) return
+      if (key === "d") {
+        // Also stops the browser's bookmark shortcut.
+        event.preventDefault()
+        actions.duplicateFrame()
+      } else if (key === "c") {
+        if (actions.copyFrame()) event.preventDefault()
+      } else if (actions.pasteFrame()) {
+        event.preventDefault()
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
+
   // Undo / redo shortcuts.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -729,6 +761,93 @@ function App() {
   }
 
 
+  /** What Cmd/Ctrl+C copied: a frame's image and style, pasted as a new frame. */
+  const copiedFrameRef = useRef<{ src: string; style: CardStyle; from: number } | null>(null)
+  const canDuplicate = (from: number | null) =>
+    from !== null && Boolean(doc.slotImages[from]) && totalImages < maxCards
+
+  /**
+   * Adds a frame showing the same image with the same style: the next empty
+   * frame in this layout (after the source, wrapping around), or, when the
+   * layout is full, the smallest template that fits one more, like adding an
+   * image. Stops at the 10-frame maximum.
+   */
+  const addFrameCopy = (copy: { src: string; style: CardStyle; from: number }, verb: string) => {
+    if (totalImages >= maxCards) {
+      announce(`You can have up to ${maxCards} frames`)
+      return
+    }
+    const total = totalImages + 1
+    const target = total > cardCount ? templateFor(total) : null
+    const count = target ? target.cards.length : cardCount
+    const slotImages = [...doc.slotImages]
+    // When switching to fit, spare images come into view too.
+    const incoming = target
+      ? [...slotImages.slice(count).filter((src): src is string => src !== null), copy.src]
+      : [copy.src]
+    if (target) for (let index = count; index < maxCards; index += 1) slotImages[index] = null
+    const start = Math.min(copy.from + 1, count)
+    const order = [
+      ...Array.from({ length: count - start }, (_, i) => start + i),
+      ...Array.from({ length: start }, (_, i) => i),
+    ]
+    let next = 0
+    let placed = -1
+    for (const index of order) {
+      if (next === incoming.length) break
+      if (!slotImages[index]) {
+        slotImages[index] = incoming[next++]
+        if (next === incoming.length) placed = index
+      }
+    }
+    if (placed === -1) return
+    const styles = (target ? startStyles(target) : [...doc.styles]).map((style, index) =>
+      index === placed ? { ...copy.style } : style,
+    )
+    commit((current) => ({
+      ...current,
+      ...(target ? { templateId: target.id, offsets: zeroOffsets() } : {}),
+      slotImages,
+      styles,
+    }))
+    setSelectedSlot(placed)
+    announce(
+      [
+        `Frame ${copy.from + 1} ${verb} to frame ${placed + 1}`,
+        target && target.id !== doc.templateId ? `switched to ${target.name} to fit ${total}` : "",
+      ]
+        .filter(Boolean)
+        .join(", "),
+    )
+  }
+
+  const duplicateFrame = () => {
+    if (slot === null) return
+    const src = doc.slotImages[slot]
+    if (!src) {
+      announce("Add an image to this frame to duplicate it")
+      return
+    }
+    addFrameCopy({ src, style: doc.styles[slot], from: slot }, "duplicated")
+  }
+
+  const copyFrame = () => {
+    if (slot === null || !doc.slotImages[slot]) return false
+    copiedFrameRef.current = { src: doc.slotImages[slot], style: { ...doc.styles[slot] }, from: slot }
+    announce(`Frame ${slot + 1} copied`)
+    return true
+  }
+
+  const pasteFrame = () => {
+    const copied = copiedFrameRef.current
+    if (!copied) return false
+    addFrameCopy(copied, "pasted")
+    return true
+  }
+
+  // The shortcut listener reads the latest versions.
+  frameShortcuts.current = { duplicateFrame, copyFrame, pasteFrame }
+
   /** Removes the selected frame's image only; the frame itself stays. */
   const deleteImage = () => {
     if (slot === null) return
@@ -876,6 +995,7 @@ function App() {
   }
 
   const undoShortcut = isMac ? "⌘Z" : "Ctrl+Z"
+  const duplicateShortcut = isMac ? "⌘D" : "Ctrl+D"
   const redoShortcut = isMac ? "⇧⌘Z" : "Ctrl+Shift+Z"
 
   return (
@@ -944,7 +1064,7 @@ function App() {
                 {/* Balanced, so a wrap never leaves "pixels" alone on a line. */}
                 <div aria-level={2} role="heading" style={{ textWrap: "balance" }}>
                   <Text size="300" weight="bold">
-                    Blog header format: {canvas.width} × {canvas.height} pixels
+                    Blog Header Format: {canvas.width} × {canvas.height} Pixels
                   </Text>
                 </div>
 
@@ -969,7 +1089,7 @@ function App() {
                         size="300"
                         weight="bold"
                       >
-                        {totalImages < maxCards ? "Add images" : `All ${maxCards} images added`}
+                        {totalImages < maxCards ? "Add Images" : `All ${maxCards} Images Added`}
                       </Text>
                       <div className="text-medium">
                         <Text align="center" color="subtle" size="200">
@@ -996,7 +1116,7 @@ function App() {
                       <FrameSwitch
                         hasFrame={slot !== null}
                         id="drop-shadow-switch"
-                        label="Drop shadow"
+                        label="Drop Shadow"
                         onAnnounce={announce}
                         onChange={(on) => updateStyle({ dropShadow: on ? 1 : 0 })}
                         switched={doc.styles[activeSlot].dropShadow === 1}
@@ -1101,6 +1221,15 @@ function App() {
                         <FrameToolbar
                           key={slot}
                           canReset={isFrameChanged}
+                          duplicate={{
+                            disabled: !canDuplicate(slot),
+                            label: !doc.slotImages[slot]
+                              ? "Add an image to duplicate this frame"
+                              : totalImages >= maxCards
+                                ? `Maximum of ${maxCards} frames reached`
+                                : `Duplicate frame (${duplicateShortcut})`,
+                            onDuplicate: duplicateFrame,
+                          }}
                           hasImage={Boolean(doc.slotImages[slot])}
                           nudgeStep={nudgeSteps.large}
                           onDeleteImage={deleteImage}
@@ -1178,8 +1307,8 @@ function App() {
                   fullWidth
                   iconStart="refresh"
                   onClick={resetAll}
-                  size="sm"
-                  text="Reset all"
+                  size="md"
+                  text="Reset all frames"
                 />
                 <Divider />
                 <BackgroundStylePanel

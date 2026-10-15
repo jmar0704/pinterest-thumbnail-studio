@@ -111,6 +111,11 @@ Commit `54953fb`.
 - **Border** became an on/off preset beside Drop shadow.
 - **Background style** moved above Frame style, with pattern tiles like the template tiles and a folder panel for each pattern's settings.
 
+## 14. Duplicate frames and headings (Oct 15)
+
+- Duplicate a frame from the toolbar, with Cmd/Ctrl+D, or copy and paste, up to 10 frames.
+- Side panel headings switched to Title Case; Rings starts at 6; "Reset all frames" matches the Export button's size.
+
 ## Ground rules that held throughout
 
 - **Design system:** Gestalt components first. Custom components are composed from Gestalt primitives and semantic tokens. Raw colors exist only in the artwork palette and the template JSON.

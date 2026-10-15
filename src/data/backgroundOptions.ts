@@ -58,7 +58,7 @@ export type BackgroundStyle = {
 
 export const defaultBackgroundStyle: BackgroundStyle = {
   pattern: 0,
-  rings: 2,
+  rings: 5,
   gap: 1,
   ribs: 1,
   wave: 1,

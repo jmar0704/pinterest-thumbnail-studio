@@ -15,6 +15,7 @@ type Action = {
     | "arrow-down"
     | "arrow-forward"
     | "check-circle"
+    | "duplicate"
   disabled?: boolean
   onTap: () => void
 }
@@ -61,7 +62,8 @@ function ToolbarButton({ action }: { action: Action }) {
 
 /**
  * Floating actions for the selected frame, shown just below it on the canvas:
- * move it without dragging, delete its image (the frame stays), replace or
+ * move it without dragging, duplicate it (also Cmd/Ctrl+D, or copy and paste
+ * with Cmd/Ctrl+C and V) up to 10 frames, delete its image (the frame stays), replace or
  * add its image, and reset the frame's position and style.
  *
  * "Move frame" swaps the actions for four nudge arrows and Done, so frames can
@@ -71,6 +73,7 @@ export default function FrameToolbar({
   slot,
   hasImage,
   canReset,
+  duplicate,
   nudgeStep,
   onNudge,
   onDeleteImage,
@@ -81,6 +84,8 @@ export default function FrameToolbar({
   slot: number
   hasImage: boolean
   canReset: boolean
+  /** Duplicate frame: its tooltip says why it's off (no image, or 10 frames). */
+  duplicate: { disabled: boolean; label: string; onDuplicate: () => void }
   /** Canvas px each nudge button moves the frame. */
   nudgeStep: number
   onNudge: (dx: number, dy: number) => void
@@ -118,6 +123,13 @@ export default function FrameToolbar({
       ]
     : [
         { id: "move", label: "Move frame", icon: "move-pin", onTap: () => switchMode(true) },
+        {
+          id: "duplicate",
+          label: duplicate.label,
+          icon: "duplicate",
+          disabled: duplicate.disabled,
+          onTap: duplicate.onDuplicate,
+        },
         { id: "delete", label: "Delete image", icon: "trash-can", disabled: !hasImage, onTap: onDeleteImage },
         {
           id: "replace",

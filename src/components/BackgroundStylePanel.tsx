@@ -158,7 +158,7 @@ export default function BackgroundStylePanel({
       items={[
         {
           title:
-            pattern.value === "none" ? "Background style" : `Background style · ${pattern.label}`,
+            pattern.value === "none" ? "Background Style" : `Background Style · ${pattern.label}`,
           children: content,
         },
       ]}

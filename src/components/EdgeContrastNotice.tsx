@@ -37,7 +37,7 @@ export default function EdgeContrastNotice({
           <Flex.Item flex="grow">
             <div aria-level={3} role="heading">
               <Text size="300" weight="bold">
-                Image may blend into the background
+                Image May Blend into the Background
               </Text>
             </div>
           </Flex.Item>
