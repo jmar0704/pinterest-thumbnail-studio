@@ -109,7 +109,7 @@ export default function StylePanel({
       id="style-panel"
       items={[
         {
-          title: enabled ? `Frame style · Frame ${slot + 1}` : "Frame style",
+          title: enabled ? `Frame style · frame ${slot + 1}` : "Frame style",
           children: content,
         },
       ]}

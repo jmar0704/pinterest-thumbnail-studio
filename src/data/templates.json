@@ -5,7 +5,8 @@
     "extractedFrom": "Figma Plugin API relativeTransform (exact, not bounding boxes)",
     "figmaPages": [
       "Templates (85:874)",
-      "Templates 2 (122:251)"
+      "Templates 2 (122:251)",
+      "Templates 3 (136:384)"
     ]
   },
   "conventions": {
@@ -181,36 +182,36 @@
     {
       "id": "tilted-grid",
       "name": "Tilted grid",
-      "figmaNodeId": "",
+      "figmaNodeId": "137:474",
       "allowBleed": ["top", "right", "bottom", "left"],
-      "note": "Designed in code on 2026-10-14 from the existing templates' rules; not in Figma.",
+      "note": "Designed in code on 2026-10-14, then edited by hand in Figma (page \"Templates 3\", 2026-10-14).",
       "cards": [
-        { "z": 0, "cx": -199.65, "cy": 383.59, "rotate": -12 },
-        { "z": 1, "cx": -57.86, "cy": 1050.68, "rotate": -12 },
-        { "z": 4, "cx": 222.19, "cy": 49.89, "rotate": -12 },
-        { "z": 5, "cx": 363.98, "cy": 716.99, "rotate": -12 },
-        { "z": 6, "cx": 764.55, "cy": 283.23, "rotate": -12 },
-        { "z": 7, "cx": 906.35, "cy": 950.32, "rotate": -12 },
-        { "z": 8, "cx": 1165.12, "cy": -150.54, "rotate": -12 },
-        { "z": 9, "cx": 1306.92, "cy": 516.56, "rotate": -12 },
-        { "z": 2, "cx": 1650.77, "cy": -184.04, "rotate": -12 },
-        { "z": 3, "cx": 1792.56, "cy": 483.06, "rotate": -12 }
+        { "z": 0, "cx": 252.51, "cy": 218.54, "rotate": -15 },
+        { "z": 1, "cx": 429.02, "cy": 877.3, "rotate": -15 },
+        { "z": 2, "cx": 923.84, "cy": 861.7, "rotate": -15 },
+        { "z": 3, "cx": 747.33, "cy": 202.93, "rotate": -15 },
+        { "z": 4, "cx": 1359.66, "cy": 625.86, "rotate": -15 },
+        { "z": 5, "cx": 1183.14, "cy": -32.9, "rotate": -15 },
+        { "z": 6, "cx": -185.12, "cy": 447.61, "rotate": -15 },
+        { "z": 7, "cx": -8.6, "cy": 1106.37, "rotate": -15 },
+        { "z": 8, "cx": 1607.31, "cy": -312.2, "rotate": -15 },
+        { "z": 9, "cx": 1783.82, "cy": 346.56, "rotate": -15 }
       ]
     },
     {
       "id": "wave",
       "name": "Wave",
-      "figmaNodeId": "",
+      "figmaNodeId": "136:385",
       "allowBleed": ["right", "bottom", "left"],
-      "note": "Designed in code on 2026-10-14 from the existing templates' rules; not in Figma.",
+      "note": "Designed in code on 2026-10-14, then edited by hand in Figma (page \"Templates 3\", 2026-10-14).",
       "cards": [
-        { "z": 0, "cx": 110, "cy": 470, "rotate": 20 },
-        { "z": 1, "cx": 340, "cy": 539.28, "rotate": 10 },
-        { "z": 2, "cx": 570, "cy": 539.28, "rotate": -10 },
-        { "z": 3, "cx": 800, "cy": 470, "rotate": -20 },
-        { "z": 4, "cx": 1030, "cy": 400.72, "rotate": -10 },
-        { "z": 5, "cx": 1260, "cy": 400.72, "rotate": 10 },
-        { "z": 6, "cx": 1490, "cy": 470, "rotate": 20 }
+        { "z": 0, "cx": 119.24, "cy": 634.95, "rotate": 10.61 },
+        { "z": 1, "cx": 357.46, "cy": 665.79, "rotate": 0.61 },
+        { "z": 2, "cx": 584.38, "cy": 628.28, "rotate": -19.39 },
+        { "z": 3, "cx": 800, "cy": 522.41, "rotate": -29.39 },
+        { "z": 4, "cx": 1015.62, "cy": 416.55, "rotate": -19.39 },
+        { "z": 5, "cx": 1242.54, "cy": 379.04, "rotate": 0.61 },
+        { "z": 6, "cx": 1480.76, "cy": 409.88, "rotate": 10.61 }
       ]
     },
     {

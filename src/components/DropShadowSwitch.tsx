@@ -28,7 +28,7 @@ export default function DropShadowSwitch({
 
   return (
     <Flex direction="column" gap={2}>
-      <Text size="200" weight="bold">
+      <Text size="300" weight="bold">
         Drop shadow
       </Text>
       <Flex alignItems="center" gap={3}>

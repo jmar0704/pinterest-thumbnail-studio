@@ -74,6 +74,15 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## Edits (2026-10-14, typography and patterns)
+
+- Tilted grid and Wave re-extracted from the hand-edited Figma boards ("Templates 3": Wave 136:385, Tilted Grid 137:474). Tilted grid is now −15°; one top-right edge frame shows only about 2% (as designed).
+- Every bold heading and control label now matches the Frame style / Background style titles (16px bold); template names stay 14px.
+- Weight check: every text element measured as Regular 400 or SemiBold 600, and the font files' weight classes are correct; no light weight found. Waiting on which text looked light.
+- Sentence case: upload help text, the margin warning, step descriptions in accessible names, and "Frame style · frame N".
+- Rings: a 6th ring step.
+- Fractal wave: Off/Soft/Strong look nearly the same; options proposed for review.
+
 ## New templates (2026-10-14)
 
 - Designed 8 candidates in code from the existing templates' rules (450×650 frames, 48px margin, Grid's 32px gaps, rotation range, intentional bleed) and reviewed them on a page drawn with the app's renderer. Kept 4:

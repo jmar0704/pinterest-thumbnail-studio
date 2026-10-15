@@ -45,7 +45,7 @@ Canvas drawing code can't read CSS variables directly. If it needs a UI token, r
 
 ## Templates
 
-The source of truth is `src/data/templates.json`. It was first extracted from Figma file `XyvXAvzsiYBcNrLaeaslrO`, pages "Templates" (node `85:874`) and "Templates 2" (node `122:251`), and each template records its Figma node ID. Since 2026-10-08 the geometry is maintained in the JSON directly (the Grid's left and right edge columns were added there), so Figma may lag behind it. Cascade, Tilted grid, Wave, Skyline, Turned row and Coverflow (2026-10-14) were designed in code and have no Figma node (`figmaNodeId` is empty); Tilted grid and Wave were also drawn on "Templates 2" for hand editing.
+The source of truth is `src/data/templates.json`. It was first extracted from Figma file `XyvXAvzsiYBcNrLaeaslrO`, pages "Templates" (node `85:874`) and "Templates 2" (node `122:251`), and each template records its Figma node ID. Since 2026-10-08 the geometry is maintained in the JSON directly (the Grid's left and right edge columns were added there), so Figma may lag behind it. Cascade, Tilted grid, Wave, Skyline, Turned row and Coverflow (2026-10-14) were designed in code and have no Figma node (`figmaNodeId` is empty); Tilted grid and Wave were then edited by hand on "Templates 3" (node `136:384`) and re-extracted, so they record Figma node IDs.
 
 - **Don't edit template geometry to fix a rendering bug.** If a template renders differently from its JSON, the bug is in the rendering code (for example, `gestalt.css` sets `svg * { transform-box: fill-box }`, which broke the picker thumbnails' rotation pivots). Change the JSON only when the design itself changes.
 - **Cards are always 450×650 with a 48 corner radius.** Templates change position, rotation and stacking order; a card may also carry a fixed `"scale"` from the design (Showcase's back card is 0.7373×); such a card always draws at that scale, and its Size control and resize handles are locked. A card may instead set a starting `"size"` (a Size step value: 0.8, 0.9, 1, 1.1, 1.2) and `"tilt"` (a 3D tilt step value: ±15, ±30); these are only where the controls start, so users can change them and Reset returns to them (Coverflow, Turned row).
@@ -67,7 +67,8 @@ The source of truth is `src/data/templates.json`. It was first extracted from Fi
 - `src/hooks/useHistory.ts`: undo/redo snapshots.
 - `src/theme/artworkPalette.ts`: color templates (background + paired drop-shadow glow) and other artwork colors.
 - `src/components/`: TemplatePicker, LayoutThumbnail, FrameChips (3-column frame grid: tap to select, drag to swap images), FrameToolbar (floating actions under the selected frame), StylePanel (the Frame style dropdown), BackgroundStylePanel (the Background style dropdown), StepControl, ColorTemplatePicker, DropShadowSwitch, BlogPreview (the Preview modal), EdgeContrastNotice (low edge contrast warning; flagged images also get a warning icon on their frame tile and a preview-only tint on the canvas).
-- UI copy uses sentence case, including section headings.
+- UI copy uses sentence case, including section headings, control descriptions and accessible names (product and template names keep their capitals).
+- Bold section headings and control labels use the same role as the Frame style / Background style titles: `Text size="300" weight="bold"` (16px). Template names on picker tiles stay 14px. Text uses only Regular (400) and SemiBold (600).
 
 ## Code conventions
 

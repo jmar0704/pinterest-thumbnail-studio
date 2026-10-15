@@ -956,8 +956,9 @@ function App() {
               as="aside"
               borderStyle="sm" height="100%" overflow="scrollY" padding={4}>
               <Flex direction="column" gap={5}>
-                <div aria-level={2} role="heading">
-                  <Text size="200" weight="bold">
+                {/* Balanced, so a wrap never leaves "pixels" alone on a line. */}
+                <div aria-level={2} role="heading" style={{ textWrap: "balance" }}>
+                  <Text size="300" weight="bold">
                     Blog header format: {canvas.width} × {canvas.height} pixels
                   </Text>
                 </div>
@@ -980,13 +981,13 @@ function App() {
                       <Text
                         align="center"
                         color={totalImages < maxCards ? "default" : "disabled"}
-                        size="200"
+                        size="300"
                         weight="bold"
                       >
                         {totalImages < maxCards ? "Add images" : `All ${maxCards} images added`}
                       </Text>
                       <Text align="center" color="subtle" size="200">
-                        JPG or PNG or WebP • Max {maxCards} Images • 10MB Max Per Image
+                        JPG or PNG or WebP • Max {maxCards} images • 10MB max per image
                       </Text>
                     </Flex>
                   </Box>
@@ -1015,7 +1016,7 @@ function App() {
                 <Flex direction="column" gap={3}>
                   <Flex alignItems="center" justifyContent="between">
                     <div aria-level={2} role="heading">
-                      <Text size="200" weight="bold">
+                      <Text size="300" weight="bold">
                         Templates
                       </Text>
                     </div>
@@ -1062,7 +1063,7 @@ function App() {
                 {violatingSlots.size > 0 ? (
                   <BannerSlim
                     iconAccessibilityLabel="Warning"
-                    message={`${listFrames([...violatingSlots].sort((a, b) => a - b))} the ${canvas.margin}px margin. Drag back inside, or lower Size, Rotate or 3D tilt.`}
+                    message={`${listFrames([...violatingSlots].sort((a, b) => a - b))} the ${canvas.margin}px margin. Drag back inside, or lower the size, rotation or 3D tilt.`}
                     type="warning"
                   />
                 ) : null}
@@ -1117,7 +1118,7 @@ function App() {
               <Flex direction="column" gap={3}>
                 <Flex alignItems="center" justifyContent="between">
                   <div aria-level={2} role="heading">
-                    <Text size="200" weight="bold">
+                    <Text size="300" weight="bold">
                       Frames
                     </Text>
                   </div>

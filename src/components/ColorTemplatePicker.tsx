@@ -75,7 +75,7 @@ export default function ColorTemplatePicker({
     <Flex direction="column" gap={3}>
       <Flex alignItems="baseline" gap={2}>
         <div aria-level={2} role="heading">
-          <Text size="200" weight="bold">
+          <Text size="300" weight="bold">
             Background
           </Text>
         </div>

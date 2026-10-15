@@ -15,7 +15,7 @@ export const sizeSteps: Step<number>[] = [
 export const rotateSteps: Step<number>[] = [
   { label: "−10°", value: -10, description: "10° counter-clockwise" },
   { label: "−5°", value: -5, description: "5° counter-clockwise" },
-  { label: "0°", value: 0, description: "As designed" },
+  { label: "0°", value: 0, description: "as designed" },
   { label: "+5°", value: 5, description: "5° clockwise" },
   { label: "+10°", value: 10, description: "10° clockwise" },
 ]
@@ -25,16 +25,16 @@ export const rotateSteps: Step<number>[] = [
  * the card to face left, positive to face right.
  */
 export const tiltSteps: Step<number>[] = [
-  { label: "−30°", value: -30, description: "Strong turn to the left" },
-  { label: "−15°", value: -15, description: "Slight turn to the left" },
-  { label: "Off", value: 0, description: "Flat" },
-  { label: "+15°", value: 15, description: "Slight turn to the right" },
-  { label: "+30°", value: 30, description: "Strong turn to the right" },
+  { label: "−30°", value: -30, description: "strong turn to the left" },
+  { label: "−15°", value: -15, description: "slight turn to the left" },
+  { label: "Off", value: 0, description: "flat" },
+  { label: "+15°", value: 15, description: "slight turn to the right" },
+  { label: "+30°", value: 30, description: "strong turn to the right" },
 ]
 
 /** Border width in canvas px. */
 export const borderSteps: Step<number>[] = [
-  { label: "None", value: 0, description: "No border" },
+  { label: "None", value: 0, description: "no border" },
   { label: "Thin", value: 4, description: "4 px" },
   { label: "Mid", value: 8, description: "8 px" },
   { label: "Thick", value: 12, description: "12 px" },
@@ -42,8 +42,8 @@ export const borderSteps: Step<number>[] = [
 
 /** Drop shadow uses the color template's paired glow (see artworkPalette.ts). */
 export const dropShadowSteps: Step<boolean>[] = [
-  { label: "Off", value: false, description: "No shadow" },
-  { label: "On", value: true, description: "Glow from the color template" },
+  { label: "Off", value: false, description: "no shadow" },
+  { label: "On", value: true, description: "glow from the color template" },
 ]
 
 /** Per-card style, stored as step indexes into the arrays above. */

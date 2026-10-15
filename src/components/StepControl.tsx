@@ -36,7 +36,7 @@ export default function StepControl<T>({
   return (
     <Flex direction="column" gap={2}>
       <Flex alignItems="center" justifyContent="between">
-        <Text size="200" weight="bold">
+        <Text size="300" weight="bold">
           {label}
         </Text>
         <Flex alignItems="center" gap={1}>

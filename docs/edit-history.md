@@ -100,6 +100,11 @@ Commit `54953fb`.
 - Templates can now set each frame's starting **Size** and **3D tilt** step. Size gained **XS** (0.8×).
 - **Turned row** (5) and **Coverflow** (7) were added from reference images.
 
+## 12. Figma round trip and type pass (Oct 14)
+
+- Tilted grid and Wave were edited by hand in Figma and copied back exactly.
+- Bold headings and control labels share the Frame style title's 16px bold; sentence case everywhere; Rings gained a 6th step.
+
 ## Ground rules that held throughout
 
 - **Design system:** Gestalt components first. Custom components are composed from Gestalt primitives and semantic tokens. Raw colors exist only in the artwork palette and the template JSON.
