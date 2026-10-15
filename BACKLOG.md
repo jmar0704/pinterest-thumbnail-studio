@@ -81,7 +81,7 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Weight check: every text element measured as Regular 400 or SemiBold 600, and the font files' weight classes are correct; no light weight found. Waiting on which text looked light.
 - Sentence case: upload help text, the margin warning, step descriptions in accessible names, and "Frame style · frame N".
 - Rings: a 6th ring step.
-- Fractal wave: Off/Soft/Strong look nearly the same; options proposed for review.
+- Fractal wave: Off/Soft/Strong looked nearly the same. Chose Option A: Soft and Strong bend 160/340px with 1.5/2.5 waves, ribs fall out of step, and the glass sheen strengthens per step (`waveSteps` values are now `{ bend, waves, stagger, sheen }`).
 
 ## New templates (2026-10-14)
 

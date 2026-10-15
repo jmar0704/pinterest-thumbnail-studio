@@ -33,11 +33,18 @@ export const ribSteps: Step<number>[] = [
   { label: "Wide", value: 24, description: "few wide ribs" },
 ]
 
-/** How far the ribs bend the colors behind them, in canvas px. */
-export const waveSteps: Step<number>[] = [
-  { label: "Off", value: 0, description: "straight ribs" },
-  { label: "Soft", value: 64, description: "gentle wave" },
-  { label: "Strong", value: 144, description: "strong wave" },
+/**
+ * How the ribs bend the colors behind them. Each step is clearly different:
+ * `bend` is the sideways shift (canvas px), `waves` how many S-curves run
+ * down the canvas, `stagger` how far each rib falls out of step with its
+ * neighbour (radians), and `sheen` scales the glass highlight and shade.
+ */
+export type Wave = { bend: number; waves: number; stagger: number; sheen: number }
+
+export const waveSteps: Step<Wave>[] = [
+  { label: "Off", value: { bend: 0, waves: 1, stagger: 0.12, sheen: 1 }, description: "straight ribs" },
+  { label: "Soft", value: { bend: 160, waves: 1.5, stagger: 0.4, sheen: 1.25 }, description: "gentle wave" },
+  { label: "Strong", value: { bend: 340, waves: 2.5, stagger: 0.55, sheen: 1.6 }, description: "strong wave" },
 ]
 
 /** Background style, stored as step indexes into the arrays above. */

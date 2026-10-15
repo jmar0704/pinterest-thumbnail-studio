@@ -96,7 +96,7 @@ function paintColorFields(context: CanvasRenderingContext2D, colors: ColorTempla
 function renderFractal(colors: ColorTemplate, style: BackgroundStyle) {
   const ribs = ribSteps[style.ribs].value
   const wave = waveSteps[style.wave].value
-  const key = [colors.id, ribs, wave].join("|")
+  const key = [colors.id, ribs, style.wave].join("|")
   const cached = fractalCache.get(key)
   if (cached) return cached
 
@@ -111,8 +111,9 @@ function renderFractal(colors: ColorTemplate, style: BackgroundStyle) {
   for (let rib = 0; rib < ribs; rib += 1) {
     const x = rib * ribWidth
     for (let y = 0; y < height; y += sliceHeight) {
-      // One S-curve down the canvas, phase-shifted per rib.
-      const shift = wave * Math.sin((y / height) * Math.PI * 2 + rib * 0.12)
+      // S-curves down the canvas, each rib a little out of step.
+      const shift =
+        wave.bend * Math.sin((y / height) * Math.PI * 2 * wave.waves + rib * wave.stagger)
       const sourceX = Math.min(Math.max(x + shift - ribWidth * 0.25, 0), width - ribWidth * 1.5)
       context.drawImage(
         fields,
@@ -127,9 +128,9 @@ function renderFractal(colors: ColorTemplate, style: BackgroundStyle) {
       )
     }
     const sheen = context.createLinearGradient(x, 0, x + ribWidth, 0)
-    sheen.addColorStop(0, withAlpha(ribHighlight, 0.22))
+    sheen.addColorStop(0, withAlpha(ribHighlight, 0.22 * wave.sheen))
     sheen.addColorStop(0.45, withAlpha(ribHighlight, 0))
-    sheen.addColorStop(1, withAlpha(ribShade, 0.16))
+    sheen.addColorStop(1, withAlpha(ribShade, 0.16 * wave.sheen))
     context.fillStyle = sheen
     context.fillRect(x, 0, ribWidth + 0.5, height)
   }
