@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Metropolis: only the weights the UI uses (Text regular 400, bold 600). */
+/* Metropolis: only the weights the UI uses (regular 400, medium 500 for left-sidebar helper text, bold 600). */
 @font-face {
   font-family: "Metropolis";
   src: url("/fonts/Metropolis-Regular.ttf") format("truetype");
@@ -13,6 +13,14 @@
   font-family: "Metropolis";
   src: url("/fonts/Metropolis-SemiBold.ttf") format("truetype");
   font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Metropolis";
+  src: url("/fonts/Metropolis-Medium.ttf") format("truetype");
+  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
@@ -313,4 +321,18 @@ body {
 .step-control-disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+/*
+ * Left-sidebar helper text at Medium 500 (user decision, 2026-10-15), so it
+ * reads as firmly as the style option labels. Gestalt has no 500 token
+ * (normal 400, semibold 600, bold 700), so it's defined once here and flagged
+ * in BACKLOG.md. Gestalt Text has no className, so this wraps it; the extra
+ * `html` beats Gestalt's single-class weight rule.
+ */
+html:root {
+  --font-weight-medium: 500;
+}
+html .text-medium * {
+  font-weight: var(--font-weight-medium);
 }

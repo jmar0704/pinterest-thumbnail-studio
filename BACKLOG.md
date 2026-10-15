@@ -72,6 +72,7 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Layout breakpoint `1100px` and the stacked stage height `70vh` in `index.css`.
 - Canvas-space drawing values (margin guide dash 16/12, guide and outline widths 3 and 6). These are artwork-scale numbers, not UI spacing.
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
+- Font weight 500 (Medium): Gestalt has 400/600/700 only. Left-sidebar helper text (upload hint, color name, drop shadow switch label, "Pick a template…") uses Medium 500 by user decision (2026-10-15), defined once as `--font-weight-medium` in `index.css` with the `.text-medium` wrapper.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
 ## Edits (2026-10-14, typography and patterns)

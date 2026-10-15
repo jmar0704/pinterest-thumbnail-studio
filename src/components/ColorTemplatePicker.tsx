@@ -80,9 +80,11 @@ export default function ColorTemplatePicker({
           </Text>
         </div>
         {current ? (
-          <Text color="subtle" size="200">
-            {current.name}
-          </Text>
+          <div className="text-medium">
+            <Text color="subtle" size="200">
+              {current.name}
+            </Text>
+          </div>
         ) : null}
       </Flex>
       {/* Light backgrounds first, then deep ones, each group on its own lines. */}

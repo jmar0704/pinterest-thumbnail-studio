@@ -68,7 +68,7 @@ The source of truth is `src/data/templates.json`. It was first extracted from Fi
 - `src/theme/artworkPalette.ts`: color templates (background + paired drop-shadow glow) and other artwork colors.
 - `src/components/`: TemplatePicker, LayoutThumbnail, FrameChips (3-column frame grid: tap to select, drag to swap images), FrameToolbar (floating actions under the selected frame), StylePanel (the Frame style dropdown), BackgroundStylePanel (the Background style dropdown), StepControl, ColorTemplatePicker, DropShadowSwitch, BlogPreview (the Preview modal), EdgeContrastNotice (low edge contrast warning; flagged images also get a warning icon on their frame tile and a preview-only tint on the canvas).
 - UI copy uses sentence case, including section headings, control descriptions and accessible names (product and template names keep their capitals).
-- Bold section headings and control labels use the same role as the Frame style / Background style titles: `Text size="300" weight="bold"` (16px). Template names on picker tiles stay 14px. Text uses only Regular (400) and SemiBold (600).
+- Bold section headings and control labels use the same role as the Frame style / Background style titles: `Text size="300" weight="bold"` (16px). Template names on picker tiles stay 14px. Text uses Regular (400) and SemiBold (600), plus Medium (500, no Gestalt token, flagged in BACKLOG.md) for the left sidebar's 14px helper text via the `.text-medium` wrapper.
 
 ## Code conventions
 

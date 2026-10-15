@@ -15,11 +15,11 @@ export default function DropShadowSwitch({
   switched,
   onChange,
   onAnnounce,
+  /** Sends the hint to the page's status live region for screen readers. */
 }: {
   slot: number | null
   switched: boolean
   onChange: (switched: boolean) => void
-  /** Sends the hint to the page's status live region for screen readers. */
   onAnnounce: (message: string) => void
 }) {
   const anchorRef = useRef<HTMLDivElement>(null)
@@ -52,9 +52,11 @@ export default function DropShadowSwitch({
         </div>
         <Box>
           <Label htmlFor="drop-shadow-switch">
-            <Text color={hasFrame ? "default" : "subtle"} size="200">
-              {hasFrame ? `Frame ${slot + 1}` : "No frame selected"}
-            </Text>
+            <span className="text-medium">
+              <Text color={hasFrame ? "default" : "subtle"} size="200">
+                {hasFrame ? `Frame ${slot + 1}` : "No frame selected"}
+              </Text>
+            </span>
           </Label>
         </Box>
       </Flex>

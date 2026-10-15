@@ -986,9 +986,11 @@ function App() {
                       >
                         {totalImages < maxCards ? "Add images" : `All ${maxCards} images added`}
                       </Text>
-                      <Text align="center" color="subtle" size="200">
-                        JPG or PNG or WebP • Max {maxCards} images • 10MB max per image
-                      </Text>
+                      <div className="text-medium">
+                        <Text align="center" color="subtle" size="200">
+                          JPG or PNG or WebP • Max {maxCards} images • 10MB max per image
+                        </Text>
+                      </div>
                     </Flex>
                   </Box>
                 </TapArea>
@@ -1030,9 +1032,11 @@ function App() {
                       />
                     ) : null}
                   </Flex>
-                  <Text color="subtle" size="200">
-                    Pick a template to arrange your frames.
-                  </Text>
+                  <div className="text-medium">
+                    <Text color="subtle" size="200">
+                      Pick a template to arrange your frames.
+                    </Text>
+                  </div>
                   <TemplatePicker
                     onSelect={selectTemplate}
                     selectedId={doc.templateId}
