@@ -84,6 +84,11 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Not kept: Flank, Burst, Pairs, Depth.
 - Next: brainstorm reference-inspired layouts that use 3D tilt (see Decision needed below).
 
+### Tilt templates — Decision needed
+Six tilt ideas (Turned row, Live trio, Peek, Coverflow, Carousel, Facing rows) were reviewed on a page, not added. Before any can be added:
+1. **Template tilt:** `templates.json` can't store a card's 3D tilt. Options: (a) a card's `tilt` sets the 3D tilt control's starting step, and Reset returns to it (values must be ±15° or ±30°); (b) template tilt is a base the control adds to, like Rotate; (c) the tilt is fixed and the control locked, like Showcase's scale.
+2. **Perspective:** the app's 3D tilt narrows and slants a frame (an affine shear); the references use true perspective (near edge taller). A perspective renderer would change how 3D tilt looks on every frame, and also affects export, hit testing, handles and the edge contrast check.
+
 ## Edits (2026-10-13, fourth pass)
 
 - Templates are listed by frame count, lowest first (ties keep JSON order): Showcase, Arc, Stack, Spread, Table spread, Trail, Strips, Grid.
