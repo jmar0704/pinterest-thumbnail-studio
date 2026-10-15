@@ -26,10 +26,10 @@ import StylePanel from "@/components/StylePanel"
 import TemplatePicker from "@/components/TemplatePicker"
 import useEdgeContrastWarnings, { type EdgeCheckItem } from "@/hooks/useEdgeContrastWarnings"
 import useHistory from "@/hooks/useHistory"
-import { canvas, findTemplate, maxCards, templates } from "@/data/templates"
+import { canvas, emptyState, findTemplate, maxCards, startStyles, templates } from "@/data/templates"
 import {
-  defaultCardStyle,
   isDefaultStyle,
+  startStyleFor,
   type CardStyle,
 } from "@/data/styleOptions"
 import {
@@ -95,12 +95,10 @@ type Gesture = {
 type Point = { x: number; y: number }
 
 const zeroOffsets = (): Offset[] => Array.from({ length: maxCards }, () => ({ x: 0, y: 0 }))
-const defaultStyles = (): CardStyle[] =>
-  Array.from({ length: maxCards }, () => ({ ...defaultCardStyle }))
 
 const initialDoc: Doc = {
   templateId: null,
-  styles: defaultStyles(),
+  styles: startStyles(emptyState),
   offsets: zeroOffsets(),
   colors: whiteColorTemplate.id,
   backgroundStyle: { ...defaultBackgroundStyle },
@@ -550,7 +548,7 @@ function App() {
       ...current,
       templateId: id,
       offsets: zeroOffsets(),
-      styles: defaultStyles(),
+      styles: startStyles(findTemplate(id)),
     }))
     setSelectedSlot(0)
   }
@@ -560,7 +558,7 @@ function App() {
       ...current,
       templateId: null,
       offsets: zeroOffsets(),
-      styles: defaultStyles(),
+      styles: startStyles(emptyState),
     }))
     setSelectedSlot(null)
     announce("Back to the base layout. Your images are kept.")
@@ -582,7 +580,7 @@ function App() {
       ...current,
       offsets: current.offsets.map((offset, index) => (index === slot ? { x: 0, y: 0 } : offset)),
       styles: current.styles.map((style, index) =>
-        index === slot ? { ...defaultCardStyle } : style,
+        index === slot ? { ...startStyleFor(template.cards[slot]) } : style,
       ),
     }))
 
@@ -591,7 +589,7 @@ function App() {
     commit((current) => ({
       ...current,
       offsets: zeroOffsets(),
-      styles: defaultStyles(),
+      styles: startStyles(template),
       colors: whiteColorTemplate.id,
       backgroundStyle: { ...defaultBackgroundStyle },
     }))
@@ -602,13 +600,13 @@ function App() {
   const isFrameChanged =
     slot !== null &&
     (isMoved(doc.offsets[slot]) ||
-      !isDefaultStyle(doc.styles[slot]))
+      !isDefaultStyle(doc.styles[slot], startStyleFor(template.cards[slot])))
   const canResetAll =
     doc.offsets.slice(0, cardCount).some(isMoved) ||
     doc.styles
       .slice(0, cardCount)
       .some(
-        (style) => !isDefaultStyle(style),
+        (style, index) => !isDefaultStyle(style, startStyleFor(template.cards[index])),
       ) ||
     doc.colors !== whiteColorTemplate.id ||
     !isDefaultBackgroundStyle(doc.backgroundStyle)
@@ -664,7 +662,7 @@ function App() {
               ...current,
               templateId: target.id,
               offsets: zeroOffsets(),
-              styles: defaultStyles(),
+              styles: startStyles(target),
               slotImages,
             }
           : { ...current, slotImages }
@@ -1176,6 +1174,7 @@ function App() {
                 <Divider />
                 <StylePanel
                   sizeLocked={template.cards[activeSlot]?.scale !== undefined}
+                  startStyle={startStyleFor(template.cards[activeSlot] ?? {})}
                   borderMatchesAllFrames={borderMatchesAllFrames}
                   enabled={slot !== null}
                   onApplyBorderToAll={applyBorderToAllFrames}

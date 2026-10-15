@@ -1,6 +1,6 @@
 # Thumbnail Studio
 
-Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails by placing one image per Pinterest-style rounded card (up to ten, in Grid and Tilted grid). Users pick a template (shown by frame count: Showcase, Arc, Stack, Spread, Table spread, Cascade, Trail, Strips, Wave, Skyline, Grid, Tilted grid), drag cards within the margins, style each card with stepped controls, and export a PNG.
+Thumbnail Studio lets designers and non-designers build 1600×900 blog-header thumbnails by placing one image per Pinterest-style rounded card (up to ten, in Grid and Tilted grid). Users pick a template (shown by frame count: Showcase, Arc, Stack, Spread, Table spread, Cascade, Turned row, Trail, Strips, Wave, Skyline, Coverflow, Grid, Tilted grid), drag cards within the margins, style each card with stepped controls, and export a PNG.
 
 The value of the tool is its templates. Layouts were designed by hand in Figma and now live in `src/data/templates.json`; they must render exactly as that file specifies.
 
@@ -45,15 +45,15 @@ Canvas drawing code can't read CSS variables directly. If it needs a UI token, r
 
 ## Templates
 
-The source of truth is `src/data/templates.json`. It was first extracted from Figma file `XyvXAvzsiYBcNrLaeaslrO`, pages "Templates" (node `85:874`) and "Templates 2" (node `122:251`), and each template records its Figma node ID. Since 2026-10-08 the geometry is maintained in the JSON directly (the Grid's left and right edge columns were added there), so Figma may lag behind it. Cascade, Tilted grid, Wave and Skyline (2026-10-14) were designed in code from the existing templates' rules and have no Figma node (`figmaNodeId` is empty).
+The source of truth is `src/data/templates.json`. It was first extracted from Figma file `XyvXAvzsiYBcNrLaeaslrO`, pages "Templates" (node `85:874`) and "Templates 2" (node `122:251`), and each template records its Figma node ID. Since 2026-10-08 the geometry is maintained in the JSON directly (the Grid's left and right edge columns were added there), so Figma may lag behind it. Cascade, Tilted grid, Wave, Skyline, Turned row and Coverflow (2026-10-14) were designed in code and have no Figma node (`figmaNodeId` is empty); Tilted grid and Wave were also drawn on "Templates 2" for hand editing.
 
 - **Don't edit template geometry to fix a rendering bug.** If a template renders differently from its JSON, the bug is in the rendering code (for example, `gestalt.css` sets `svg * { transform-box: fill-box }`, which broke the picker thumbnails' rotation pivots). Change the JSON only when the design itself changes.
-- **Cards are always 450×650 with a 48 corner radius.** Templates change position, rotation and stacking order; a card may also carry a fixed `"scale"` from the design (Showcase's back card is 0.7373×); such a card always draws at that scale, and its Size control and resize handles are locked.
+- **Cards are always 450×650 with a 48 corner radius.** Templates change position, rotation and stacking order; a card may also carry a fixed `"scale"` from the design (Showcase's back card is 0.7373×); such a card always draws at that scale, and its Size control and resize handles are locked. A card may instead set a starting `"size"` (a Size step value: 0.8, 0.9, 1, 1.1, 1.2) and `"tilt"` (a 3D tilt step value: ±15, ±30); these are only where the controls start, so users can change them and Reset returns to them (Coverflow, Turned row).
 - **`cx` and `cy` are card centers** in canvas pixels. **`rotate` is in degrees, clockwise positive**, already converted from Figma's counter-clockwise convention. **`z` of 0 is the back.**
 - **The 48px margin is the only hard layout rule.** A card may cross it only on sides listed in that template's `allowBleed`. The canvas clips at its edges.
 - **The 5×5 grid (20px gutter) is a visual guide only.** Nothing snaps to it.
 - **`emptyState` is the default layout** ("Base layout" in the UI) shown before a template is picked. It is not a template option. Its frames can be selected, dragged and styled like a template's (since 2026-10-08).
-- **With every style control at its default, each template must render exactly as the JSON specifies.**
+- **With every style control at its starting step (the default, or the card's own `size`/`tilt`), each template must render exactly as the JSON specifies.**
 
 ## Code map
 

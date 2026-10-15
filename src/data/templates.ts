@@ -1,4 +1,5 @@
 import data from "./templates.json"
+import { defaultCardStyle, startStyleFor, type CardStyle } from "./styleOptions"
 
 export type BleedSide = "top" | "right" | "bottom" | "left"
 
@@ -15,6 +16,10 @@ export type TemplateCard = {
    * set, the card always draws at this scale and its Size control is locked.
    */
   scale?: number
+  /** Starting Size step value (e.g. 0.8 for XS); the user can change it. */
+  size?: number
+  /** Starting 3D tilt step value (±15 or ±30); the user can change it. */
+  tilt?: number
 }
 
 export type Template = {
@@ -68,6 +73,16 @@ export const maxCards = Math.max(
   emptyState.cards.length,
   ...templates.map((template) => template.cards.length),
 )
+
+/**
+ * Every slot's starting style for a template: its cards' own Size and 3D
+ * tilt steps, defaults elsewhere (including unused slots).
+ */
+export function startStyles(template: Template): CardStyle[] {
+  return Array.from({ length: maxCards }, (_, slot) =>
+    slot < template.cards.length ? startStyleFor(template.cards[slot]) : { ...defaultCardStyle },
+  )
+}
 
 export function findTemplate(id: string | null): Template {
   return templates.find((template) => template.id === id) ?? emptyState

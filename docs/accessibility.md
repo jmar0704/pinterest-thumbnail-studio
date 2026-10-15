@@ -53,7 +53,7 @@ What was changed in the prototype to support people using keyboards, screen read
 | No `main` landmark; unlabeled sidebars | `header`, `main`, and sidebars labeled "Images, colors and templates" and "Frames and style" | Best practice (supports 2.4.1) |
 | Style dropdown named "Expand section" | "Expand/Collapse frame style" and "Expand/Collapse background style" | 2.5.3 Label in Name (A) |
 | Drop shadow hint wasn't announced and Escape lost focus | Hint sent to the status live region; tooltip role; focus returns to the switch | 4.1.3 Status Messages (AA), 2.4.3 |
-| Step descriptions removed from view ("As designed", "Flat"…) | Kept in each segment's accessible name ("M, 1.0× (as designed)") | 1.1.1 / 4.1.2 |
+| Step descriptions removed from view ("As designed", "Flat"…) | Kept in each segment's accessible name ("XS, 0.8×") | 1.1.1 / 4.1.2 |
 | Undo shortcut hijacked text fields | ⌘Z / Ctrl+Z is left to focused text fields | 2.1.1 |
 | Confirmations were visual only | Status messages ("Swapped frames 1 and 3", "Outline added to all frames…") go to a polite live region; toasts also announce | 4.1.3 |
 

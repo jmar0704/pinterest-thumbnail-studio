@@ -96,6 +96,9 @@ Commit `54953fb`.
 
 - Eight candidates were designed from the rules in the existing templates and reviewed on a page drawn with the app's own renderer.
 - Four became official: **Cascade** (5), **Wave** (7), **Skyline** (7), and **Tilted grid** (10, with edge columns like Grid's).
+- Tilted grid and Wave were drawn into the Figma file ("Templates 2") for hand editing.
+- Templates can now set each frame's starting **Size** and **3D tilt** step. Size gained **XS** (0.8×).
+- **Turned row** (5) and **Coverflow** (7) were added from reference images.
 
 ## Ground rules that held throughout
 

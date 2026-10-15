@@ -35,6 +35,12 @@ Format: **Context** → **Options** → **Decision** → **Why**.
 - **Decision:** Candidates are generated from the existing templates' rules, checked numerically (bleed sides, margin, how much of each frame is visible), and reviewed on a page rendered by the app before being added. Kept templates have an empty `figmaNodeId` and a note.
 - **Why:** They stay consistent with the hand-made set, and nothing reaches the picker until it has been seen as it will render.
 
+### Templates that start on other steps
+- **Context:** Coverflow needs smaller frames toward the edges and frames turned toward the center; Turned row needs every frame at −30°.
+- **Options:** a fixed, locked scale and tilt (like Showcase); a base the control adds to (like Rotate); the control's starting step.
+- **Decision:** Starting step. A card's `size` and `tilt` choose where Size and 3D tilt start; Reset returns there. Size gained XS (0.8×) so Coverflow can use presets (L, M, S, XS). 3D tilt keeps its slanted look rather than true perspective.
+- **Why:** The design reads correctly at first, people can still adjust any frame, and every size is a preset they can see in the control.
+
 ### templates.json is the source of truth
 - **Decision:** Layouts were extracted from Figma, and now live in the JSON. Rendering bugs are fixed in code, never by editing geometry. New templates are extracted from Figma with the Plugin API, using each card's absolute transform for exact centers and rotations.
 - **Why:** The templates are the product's value. One canonical file keeps the app, the picker illustrations, and the export in sync.

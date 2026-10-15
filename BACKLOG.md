@@ -84,7 +84,14 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Not kept: Flank, Burst, Pairs, Depth.
 - Next: brainstorm reference-inspired layouts that use 3D tilt (see Decision needed below).
 
-### Tilt templates — Decision needed
+### Tilt templates — decided 2026-10-14
+- Template tilt: (a) a card's `tilt` (and now `size`) sets the control's starting step; Reset returns to it.
+- Perspective: keep the current slant (no renderer change).
+- Size gained an **XS** step (0.8×).
+- Added **Turned row** (5, every frame −30°) and **Coverflow** (7: L center, then M, S, XS outward, sides ±30° facing the center).
+- Tilted grid and Wave were drawn on the Figma page "Templates 2" (boards 135:2 and 135:37) for hand editing; when the edited link comes back, re-extract their geometry into `templates.json`.
+
+Original notes:
 Six tilt ideas (Turned row, Live trio, Peek, Coverflow, Carousel, Facing rows) were reviewed on a page, not added. Before any can be added:
 1. **Template tilt:** `templates.json` can't store a card's 3D tilt. Options: (a) a card's `tilt` sets the 3D tilt control's starting step, and Reset returns to it (values must be ±15° or ±30°); (b) template tilt is a base the control adds to, like Rotate; (c) the tilt is fixed and the control locked, like Showcase's scale.
 2. **Perspective:** the app's 3D tilt narrows and slants a frame (an affine shear); the references use true perspective (near edge taller). A perspective renderer would change how 3D tilt looks on every frame, and also affects export, hit testing, handles and the edge contrast check.

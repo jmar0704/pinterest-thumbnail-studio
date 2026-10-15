@@ -5,8 +5,9 @@
 export type Step<T> = { label: string; value: T; description: string }
 
 export const sizeSteps: Step<number>[] = [
+  { label: "XS", value: 0.8, description: "0.8×" },
   { label: "S", value: 0.9, description: "0.9×" },
-  { label: "M", value: 1, description: "1.0× (as designed)" },
+  { label: "M", value: 1, description: "1.0×" },
   { label: "L", value: 1.1, description: "1.1×" },
   { label: "XL", value: 1.2, description: "1.2×" },
 ]
@@ -55,11 +56,37 @@ export type CardStyle = {
 }
 
 export const defaultCardStyle: CardStyle = {
-  size: 1,
+  size: 2,
   rotate: 2,
   tilt: 2,
   border: 0,
   dropShadow: 0,
+}
+
+/** Index of the step with exactly this value; throws if there is none. */
+function stepIndex<T>(steps: Step<T>[], value: T, name: string) {
+  const index = steps.findIndex((step) => step.value === value)
+  if (index === -1) throw new Error(`templates.json: ${String(value)} is not a ${name} step`)
+  return index
+}
+
+/**
+ * A template card's starting style: the default, with the template's own
+ * Size and 3D tilt steps when it sets them (Coverflow, Turned row). Users can
+ * change them; Reset returns here.
+ */
+export function startStyleFor(templateCard: { size?: number; tilt?: number }): CardStyle {
+  return {
+    ...defaultCardStyle,
+    size:
+      templateCard.size === undefined
+        ? defaultCardStyle.size
+        : stepIndex(sizeSteps, templateCard.size, "Size"),
+    tilt:
+      templateCard.tilt === undefined
+        ? defaultCardStyle.tilt
+        : stepIndex(tiltSteps, templateCard.tilt, "3D tilt"),
+  }
 }
 
 /** Whether a card's style still matches its template's starting style. */

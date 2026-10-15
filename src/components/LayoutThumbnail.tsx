@@ -1,4 +1,5 @@
 import { canvas, card, type Template } from "@/data/templates"
+import { cardLinearTransform } from "@/lib/composition"
 
 /** A template's card silhouettes, drawn from templates.json. */
 export default function LayoutThumbnail({
@@ -16,18 +17,22 @@ export default function LayoutThumbnail({
       viewBox={`0 0 ${canvas.width} ${canvas.height}`}
     >
       {cards.map((templateCard) => {
-        // Cards with a fixed template scale (Showcase) are drawn at that size.
-        const scale = templateCard.scale ?? 1
+        // Drawn with the card's starting size and 3D tilt, like the canvas.
+        const [a, b, c, d] = cardLinearTransform(
+          templateCard.rotate,
+          templateCard.tilt ?? 0,
+          templateCard.scale ?? templateCard.size ?? 1,
+        )
         return (
           <rect
             className={selected ? "template-card template-card-selected" : "template-card"}
-            height={card.height * scale}
+            height={card.height}
             key={templateCard.z}
-            rx={card.cornerRadius * scale}
-            transform={`rotate(${templateCard.rotate} ${templateCard.cx} ${templateCard.cy})`}
-            width={card.width * scale}
-            x={templateCard.cx - (card.width * scale) / 2}
-            y={templateCard.cy - (card.height * scale) / 2}
+            rx={card.cornerRadius}
+            transform={`matrix(${a} ${b} ${c} ${d} ${templateCard.cx} ${templateCard.cy})`}
+            width={card.width}
+            x={-card.width / 2}
+            y={-card.height / 2}
           />
         )
       })}

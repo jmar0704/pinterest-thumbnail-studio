@@ -228,6 +228,36 @@
         { "z": 3, "cx": 1260, "cy": 540, "rotate": 0 },
         { "z": 1, "cx": 1490, "cy": 640, "rotate": 0 }
       ]
+    },
+    {
+      "id": "turned-row",
+      "name": "Turned row",
+      "figmaNodeId": "",
+      "allowBleed": [],
+      "note": "Designed in code on 2026-10-14. Every card starts at 3D tilt −30° (the user can change it).",
+      "cards": [
+        { "z": 0, "cx": 262.86, "cy": 450, "rotate": 0, "tilt": -30 },
+        { "z": 1, "cx": 531.43, "cy": 450, "rotate": 0, "tilt": -30 },
+        { "z": 2, "cx": 800, "cy": 450, "rotate": 0, "tilt": -30 },
+        { "z": 3, "cx": 1068.57, "cy": 450, "rotate": 0, "tilt": -30 },
+        { "z": 4, "cx": 1337.14, "cy": 450, "rotate": 0, "tilt": -30 }
+      ]
+    },
+    {
+      "id": "coverflow",
+      "name": "Coverflow",
+      "figmaNodeId": "",
+      "allowBleed": [],
+      "note": "Designed in code on 2026-10-14. Cards start at Size L (center), M, S and XS outward, side cards at 3D tilt ±30° facing the center (the user can change them).",
+      "cards": [
+        { "z": 6, "cx": 800, "cy": 450, "rotate": 0, "size": 1.1 },
+        { "z": 5, "cx": 567.36, "cy": 450, "rotate": 0, "size": 1, "tilt": 30 },
+        { "z": 4, "cx": 1032.64, "cy": 450, "rotate": 0, "size": 1, "tilt": -30 },
+        { "z": 3, "cx": 387.87, "cy": 450, "rotate": 0, "size": 0.9, "tilt": 30 },
+        { "z": 2, "cx": 1212.13, "cy": 450, "rotate": 0, "size": 0.9, "tilt": -30 },
+        { "z": 1, "cx": 218.38, "cy": 450, "rotate": 0, "size": 0.8, "tilt": 30 },
+        { "z": 0, "cx": 1381.62, "cy": 450, "rotate": 0, "size": 0.8, "tilt": -30 }
+      ]
     }
   ]
 }

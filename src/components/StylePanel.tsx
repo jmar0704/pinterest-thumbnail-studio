@@ -2,7 +2,6 @@ import { Accordion, Box, Button, Flex, Icon, Text } from "gestalt"
 import StepControl from "@/components/StepControl"
 import {
   borderSteps,
-  defaultCardStyle,
   rotateSteps,
   sizeSteps,
   tiltSteps,
@@ -35,6 +34,7 @@ export default function StylePanel({
   onApplyBorderToAll,
   borderMatchesAllFrames,
   sizeLocked,
+  startStyle,
 }: {
   enabled: boolean
   slot: number
@@ -47,6 +47,8 @@ export default function StylePanel({
   borderMatchesAllFrames: boolean
   /** The template fixes this frame's size (Showcase's back card). */
   sizeLocked: boolean
+  /** The frame's starting style from its template; each control resets to it. */
+  startStyle: CardStyle
 }) {
   const content = (
     <Flex direction="column" gap={4}>
@@ -69,7 +71,7 @@ export default function StylePanel({
           <Flex direction="column" gap={5}>
             {controls.map((control) => (
               <StepControl
-                defaultValue={defaultCardStyle[control.key]}
+                defaultValue={startStyle[control.key]}
                 disabledNote={
                   control.key === "size" && sizeLocked ? "Size is fixed by this template" : undefined
                 }

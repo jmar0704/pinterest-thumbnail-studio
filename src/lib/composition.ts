@@ -67,14 +67,23 @@ export function computePlacements({
 
 /** Linear part of the card transform: rotate · tilt · scale, as [a, b, c, d]. */
 function linearTransform(placement: Placement): [number, number, number, number] {
-  const theta = (placement.rotate * Math.PI) / 180
-  const turn = (placement.tilt * Math.PI) / 180
+  return cardLinearTransform(placement.rotate, placement.tilt, placement.scale)
+}
+
+/** rotate · tilt · scale as [a, b, c, d]; also used by the picker thumbnails. */
+export function cardLinearTransform(
+  rotate: number,
+  tilt: number,
+  scale: number,
+): [number, number, number, number] {
+  const theta = (rotate * Math.PI) / 180
+  const turn = (tilt * Math.PI) / 180
   const cos = Math.cos(theta)
   const sin = Math.sin(theta)
   // Tilt: compress horizontally and shear vertically, like a card turning in 3D.
   const ta = Math.cos(turn)
   const tb = Math.sin(turn) * 0.2
-  const s = placement.scale
+  const s = scale
   // R · T, then scale.
   return [
     (cos * ta - sin * tb) * s,
