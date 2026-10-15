@@ -1264,16 +1264,33 @@ function App() {
                     {isEmptyState ? `${cardCount} placeholders` : `${template.name} · ${cardCount}`}
                   </Text>
                 </Flex>
-                <FrameChips
-                  count={cardCount}
-                  imageForSlot={imageSrcForSlot}
-                  onSelect={setSelectedSlot}
-                  onSwap={swapImages}
-                  selected={slot}
-                  spareSlots={spareSlots}
-                  edgeWarningSlots={edgeWarningSlots}
-                  warningSlots={violatingSlots}
-                />
+                {/* One flex item, so the hidden actions link adds no gap of its own. */}
+                <div>
+                  <FrameChips
+                    count={cardCount}
+                    imageForSlot={imageSrcForSlot}
+                    onSelect={setSelectedSlot}
+                    onSwap={swapImages}
+                    selected={slot}
+                    spareSlots={spareSlots}
+                    edgeWarningSlots={edgeWarningSlots}
+                    warningSlots={violatingSlots}
+                  />
+                  {slot !== null ? (
+                    // Hidden until focused: lets keyboard users jump to the toolbar.
+                    <div className="visually-hidden-focusable">
+                      <Box marginTop={3}>
+                        <Button
+                          fullWidth
+                          iconStart="arrow-forward"
+                          onClick={focusFrameToolbar}
+                          size="sm"
+                          text={`Frame ${slot + 1} actions`}
+                        />
+                      </Box>
+                    </div>
+                  ) : null}
+                </div>
                 {selectedEdgeResult && selectedImage && selectedBackgroundFix ? (
                   <EdgeContrastNotice
                     backgroundFix={{
@@ -1290,26 +1307,18 @@ function App() {
                     weakSides={selectedEdgeResult.weakSides}
                   />
                 ) : null}
-                {slot !== null ? (
-                  // Hidden until focused: lets keyboard users jump to the toolbar.
-                  <div className="visually-hidden-focusable">
-                    <Button
-                      fullWidth
-                      iconStart="arrow-forward"
-                      onClick={focusFrameToolbar}
-                      size="sm"
-                      text={`Frame ${slot + 1} actions`}
-                    />
-                  </div>
-                ) : null}
-                <Button
-                  disabled={!canResetAll}
-                  fullWidth
-                  iconStart="refresh"
-                  onClick={resetAll}
-                  size="md"
-                  text="Reset all frames"
-                />
+                {/* 12px flex gaps + 12px margins: 24px around Reset all frames, the
+                    same space the left panel leaves above its dividers. */}
+                <Box marginBottom={3} marginTop={3}>
+                  <Button
+                    disabled={!canResetAll}
+                    fullWidth
+                    iconStart="refresh"
+                    onClick={resetAll}
+                    size="md"
+                    text="Reset all frames"
+                  />
+                </Box>
                 <Divider />
                 <BackgroundStylePanel
                   colors={colorTemplate}

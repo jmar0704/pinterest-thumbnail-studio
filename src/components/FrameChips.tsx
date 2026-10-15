@@ -1,5 +1,5 @@
 import { useRef, useState } from "react"
-import { Box, Icon, TapArea, Text } from "gestalt"
+import { Box, Flex, Icon, TapArea, Text } from "gestalt"
 import SwapImageMenu from "@/components/SwapImageMenu"
 import { iconSizes, sizes } from "@/theme/sizes"
 
@@ -103,116 +103,119 @@ export default function FrameChips({
 
   return (
     <>
-      <Box display="flex" marginEnd={-1} marginStart={-1} wrap>
-        {slots.map((slot) => {
-          const isSpare = slot >= count
-          const src = imageForSlot(slot)
-          const isSelected = !isSpare && slot === selected
-          const crossesMargin = warningSlots.has(slot)
-          const blendsIn = edgeWarningSlots.has(slot)
-          const hasWarning = crossesMargin || blendsIn
-          const isSource = dragging?.from === slot
-          const isTarget = dragging !== null && dragging.over === slot && !isSource
-          return (
-            <Box column={4} key={slot} padding={1} position="relative">
-              <div
-                className={isTarget ? "frame-chip frame-chip-target" : "frame-chip"}
-                data-frame-slot={slot}
-                onKeyDown={(event) => {
-                  if (!event.altKey || isSpare) return
-                  const step =
-                    event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0
-                  const to = slot + step
-                  if (step && to >= 0 && to < count) {
-                    event.preventDefault()
-                    onSwap(slot, to)
-                  }
-                }}
-                onPointerCancel={(event) => finishDrag(event, false)}
-                onPointerDown={onPointerDown(slot)}
-                onPointerMove={onPointerMove}
-                onPointerUp={(event) => finishDrag(event, true)}
-              >
-                <TapArea
-                  accessibilityLabel={
-                    isSpare
-                      ? "Spare image, not in this layout. Drag it onto a frame, or use its swap menu."
-                      : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${crossesMargin ? ", crosses the margin" : ""}${blendsIn ? ", image edges may blend into the background" : ""}`
-                  }
-                  onTap={() => {
-                    // Spares only move by dragging; tapping them does nothing.
-                    if (suppressTapRef.current || isSpare) return
-                    onSelect(slot)
+      {/* 20px gap + the tiles' 4px padding: 24px above the spare note, like below it. */}
+      <Flex direction="column" gap={5}>
+        <Box display="flex" marginEnd={-1} marginStart={-1} wrap>
+          {slots.map((slot) => {
+            const isSpare = slot >= count
+            const src = imageForSlot(slot)
+            const isSelected = !isSpare && slot === selected
+            const crossesMargin = warningSlots.has(slot)
+            const blendsIn = edgeWarningSlots.has(slot)
+            const hasWarning = crossesMargin || blendsIn
+            const isSource = dragging?.from === slot
+            const isTarget = dragging !== null && dragging.over === slot && !isSource
+            return (
+              <Box column={4} key={slot} padding={1} position="relative">
+                <div
+                  className={isTarget ? "frame-chip frame-chip-target" : "frame-chip"}
+                  data-frame-slot={slot}
+                  onKeyDown={(event) => {
+                    if (!event.altKey || isSpare) return
+                    const step =
+                      event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0
+                    const to = slot + step
+                    if (step && to >= 0 && to < count) {
+                      event.preventDefault()
+                      onSwap(slot, to)
+                    }
                   }}
-                  role="button"
-                  rounding={3}
-                  tapStyle="compress"
+                  onPointerCancel={(event) => finishDrag(event, false)}
+                  onPointerDown={onPointerDown(slot)}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={(event) => finishDrag(event, true)}
                 >
-                  <Box
-                    alignItems="center"
-                    borderStyle={isSelected ? "lg" : "sm"}
-                    color="secondary"
-                    dangerouslySetInlineStyle={{ __style: { aspectRatio: "4 / 5" } }}
-                    display="flex"
-                    justifyContent="center"
-                    opacity={isSource || isSpare ? 0.4 : 1}
-                    overflow="hidden"
-                    position="relative"
+                  <TapArea
+                    accessibilityLabel={
+                      isSpare
+                        ? "Spare image, not in this layout. Drag it onto a frame, or use its swap menu."
+                        : `Frame ${slot + 1}${isSelected ? ", selected" : ""}${crossesMargin ? ", crosses the margin" : ""}${blendsIn ? ", image edges may blend into the background" : ""}`
+                    }
+                    onTap={() => {
+                      // Spares only move by dragging; tapping them does nothing.
+                      if (suppressTapRef.current || isSpare) return
+                      onSelect(slot)
+                    }}
+                    role="button"
                     rounding={3}
-                    width="100%"
+                    tapStyle="compress"
                   >
-                    <ChipFace src={src} />
-                    {/* Frame number (or "Spare") badge. */}
-                    <Box left margin={1} position="absolute" top>
-                      <Box
-                        color={isSelected ? "selected" : "default"}
-                        paddingX={2}
-                        rounding="pill"
-                      >
-                        <Text color={isSelected ? "inverse" : "default"} size="100" weight="bold">
-                          {isSpare ? "Spare" : slot + 1}
-                        </Text>
-                      </Box>
-                    </Box>
-                    {hasWarning ? (
-                      <Box margin={1} position="absolute" right top>
-                        <Box color="default" padding={1} rounding="circle">
-                          <Icon
-                            accessibilityLabel=""
-                            color="warning"
-                            icon="workflow-status-warning"
-                            size={iconSizes.sm}
-                          />
+                    <Box
+                      alignItems="center"
+                      borderStyle={isSelected ? "lg" : "sm"}
+                      color="secondary"
+                      dangerouslySetInlineStyle={{ __style: { aspectRatio: "4 / 5" } }}
+                      display="flex"
+                      justifyContent="center"
+                      opacity={isSource || isSpare ? 0.4 : 1}
+                      overflow="hidden"
+                      position="relative"
+                      rounding={3}
+                      width="100%"
+                    >
+                      <ChipFace src={src} />
+                      {/* Frame number (or "Spare") badge. */}
+                      <Box left margin={1} position="absolute" top>
+                        <Box
+                          color={isSelected ? "selected" : "default"}
+                          paddingX={2}
+                          rounding="pill"
+                        >
+                          <Text color={isSelected ? "inverse" : "default"} size="100" weight="bold">
+                            {isSpare ? "Spare" : slot + 1}
+                          </Text>
                         </Box>
                       </Box>
-                    ) : null}
-                  </Box>
-                </TapArea>
-              </div>
-              {/* Outside the TapArea so it isn't a button inside a button. */}
-              <Box bottom margin={2} position="absolute" right>
-                <SwapImageMenu
-                  label={isSpare ? "the spare" : `frame ${slot + 1}`}
-                  onSwap={onSwap}
-                  slot={slot}
-                  targets={slots
-                    .filter((other) => other !== slot && !(isSpare && other >= count))
-                    .map((other) => ({
-                      slot: other,
-                      label: other >= count ? "Spare image" : `Frame ${other + 1}`,
-                    }))}
-                />
+                      {hasWarning ? (
+                        <Box margin={1} position="absolute" right top>
+                          <Box color="default" padding={1} rounding="circle">
+                            <Icon
+                              accessibilityLabel=""
+                              color="warning"
+                              icon="workflow-status-warning"
+                              size={iconSizes.sm}
+                            />
+                          </Box>
+                        </Box>
+                      ) : null}
+                    </Box>
+                  </TapArea>
+                </div>
+                {/* Outside the TapArea so it isn't a button inside a button. */}
+                <Box bottom margin={2} position="absolute" right>
+                  <SwapImageMenu
+                    label={isSpare ? "the spare" : `frame ${slot + 1}`}
+                    onSwap={onSwap}
+                    slot={slot}
+                    targets={slots
+                      .filter((other) => other !== slot && !(isSpare && other >= count))
+                      .map((other) => ({
+                        slot: other,
+                        label: other >= count ? "Spare image" : `Frame ${other + 1}`,
+                      }))}
+                  />
+                </Box>
               </Box>
-            </Box>
-          )
-        })}
-      </Box>
-      {spareSlots.length ? (
-        <Text color="subtle" size="200">
-          {spareSlots.length === 1 ? "1 image doesn't" : `${spareSlots.length} images don't`} fit
-          this layout. Drag a spare onto a frame, or use its swap menu.
-        </Text>
-      ) : null}
+            )
+          })}
+        </Box>
+        {spareSlots.length ? (
+          <Text color="subtle" size="200">
+            {spareSlots.length === 1 ? "1 image doesn't" : `${spareSlots.length} images don't`} fit
+            this layout. Drag a spare onto a frame, or use its swap menu.
+          </Text>
+        ) : null}
+      </Flex>
 
       {/* The tile being dragged follows the pointer. */}
       {dragging && ghost ? (
