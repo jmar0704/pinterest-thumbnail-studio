@@ -30,6 +30,11 @@ Format: **Context** → **Options** → **Decision** → **Why**.
 - **Decision:** Keep the exact scale, as a fixed `"scale"` on the card. Its Size control is greyed out with "Size is fixed by this template", and it gets no resize handles.
 - **Why:** The template renders exactly as designed, and nobody can break the composition the smaller card exists for. Mapping it to S was tried first, but it changed the design.
 
+### Templates designed in code
+- **Context:** New layouts were wanted beyond the Figma set.
+- **Decision:** Candidates are generated from the existing templates' rules, checked numerically (bleed sides, margin, how much of each frame is visible), and reviewed on a page rendered by the app before being added. Kept templates have an empty `figmaNodeId` and a note.
+- **Why:** They stay consistent with the hand-made set, and nothing reaches the picker until it has been seen as it will render.
+
 ### templates.json is the source of truth
 - **Decision:** Layouts were extracted from Figma, and now live in the JSON. Rendering bugs are fixed in code, never by editing geometry. New templates are extracted from Figma with the Plugin API, using each card's absolute transform for exact centers and rotations.
 - **Why:** The templates are the product's value. One canonical file keeps the app, the picker illustrations, and the export in sync.

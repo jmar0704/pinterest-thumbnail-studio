@@ -1,6 +1,6 @@
 # Edit history
 
-How Thumbnail Studio evolved from a Figma Make export into the current prototype, in the order the work happened (2026-10-07 → 2026-10-13). Each phase lists what changed and the reason, where it matters. Commit hashes are included where a commit maps to the phase.
+How Thumbnail Studio evolved from a Figma Make export into the current prototype, in the order the work happened (2026-10-07 → 2026-10-14). Each phase lists what changed and the reason, where it matters. Commit hashes are included where a commit maps to the phase.
 
 ## 1. Getting it running locally (Oct 7)
 
@@ -91,6 +91,11 @@ Commit `54953fb`.
 - Showcase's back card keeps its exact Figma scale (0.737×), and its Size control is locked and greyed out.
 - "Empty layout" was renamed **Base layout**.
 - Nothing floats over the Preview modal.
+
+## 11. Templates designed in code (Oct 14)
+
+- Eight candidates were designed from the rules in the existing templates and reviewed on a page drawn with the app's own renderer.
+- Four became official: **Cascade** (5), **Wave** (7), **Skyline** (7), and **Tilted grid** (10, with edge columns like Grid's).
 
 ## Ground rules that held throughout
 

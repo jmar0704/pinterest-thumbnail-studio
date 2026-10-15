@@ -163,6 +163,71 @@
         { "z": 5, "cx": 433, "cy": 33, "rotate": 0 },
         { "z": 6, "cx": 1187, "cy": 33, "rotate": 0 }
       ]
+    },
+    {
+      "id": "cascade",
+      "name": "Cascade",
+      "figmaNodeId": "",
+      "allowBleed": ["top", "right", "bottom", "left"],
+      "note": "Designed in code on 2026-10-14 from the existing templates' rules; not in Figma.",
+      "cards": [
+        { "z": 0, "cx": 220, "cy": 250, "rotate": -6 },
+        { "z": 2, "cx": 510, "cy": 350, "rotate": -6 },
+        { "z": 4, "cx": 800, "cy": 450, "rotate": -6 },
+        { "z": 3, "cx": 1090, "cy": 550, "rotate": -6 },
+        { "z": 1, "cx": 1380, "cy": 650, "rotate": -6 }
+      ]
+    },
+    {
+      "id": "tilted-grid",
+      "name": "Tilted grid",
+      "figmaNodeId": "",
+      "allowBleed": ["top", "right", "bottom", "left"],
+      "note": "Designed in code on 2026-10-14 from the existing templates' rules; not in Figma.",
+      "cards": [
+        { "z": 0, "cx": -199.65, "cy": 383.59, "rotate": -12 },
+        { "z": 1, "cx": -57.86, "cy": 1050.68, "rotate": -12 },
+        { "z": 4, "cx": 222.19, "cy": 49.89, "rotate": -12 },
+        { "z": 5, "cx": 363.98, "cy": 716.99, "rotate": -12 },
+        { "z": 6, "cx": 764.55, "cy": 283.23, "rotate": -12 },
+        { "z": 7, "cx": 906.35, "cy": 950.32, "rotate": -12 },
+        { "z": 8, "cx": 1165.12, "cy": -150.54, "rotate": -12 },
+        { "z": 9, "cx": 1306.92, "cy": 516.56, "rotate": -12 },
+        { "z": 2, "cx": 1650.77, "cy": -184.04, "rotate": -12 },
+        { "z": 3, "cx": 1792.56, "cy": 483.06, "rotate": -12 }
+      ]
+    },
+    {
+      "id": "wave",
+      "name": "Wave",
+      "figmaNodeId": "",
+      "allowBleed": ["right", "bottom", "left"],
+      "note": "Designed in code on 2026-10-14 from the existing templates' rules; not in Figma.",
+      "cards": [
+        { "z": 0, "cx": 110, "cy": 470, "rotate": 20 },
+        { "z": 1, "cx": 340, "cy": 539.28, "rotate": 10 },
+        { "z": 2, "cx": 570, "cy": 539.28, "rotate": -10 },
+        { "z": 3, "cx": 800, "cy": 470, "rotate": -20 },
+        { "z": 4, "cx": 1030, "cy": 400.72, "rotate": -10 },
+        { "z": 5, "cx": 1260, "cy": 400.72, "rotate": 10 },
+        { "z": 6, "cx": 1490, "cy": 470, "rotate": 20 }
+      ]
+    },
+    {
+      "id": "skyline",
+      "name": "Skyline",
+      "figmaNodeId": "",
+      "allowBleed": ["right", "bottom", "left"],
+      "note": "Designed in code on 2026-10-14 from the existing templates' rules; not in Figma.",
+      "cards": [
+        { "z": 0, "cx": 110, "cy": 640, "rotate": 0 },
+        { "z": 2, "cx": 340, "cy": 540, "rotate": 0 },
+        { "z": 4, "cx": 570, "cy": 600, "rotate": 0 },
+        { "z": 6, "cx": 800, "cy": 470, "rotate": 0 },
+        { "z": 5, "cx": 1030, "cy": 600, "rotate": 0 },
+        { "z": 3, "cx": 1260, "cy": 540, "rotate": 0 },
+        { "z": 1, "cx": 1490, "cy": 640, "rotate": 0 }
+      ]
     }
   ]
 }

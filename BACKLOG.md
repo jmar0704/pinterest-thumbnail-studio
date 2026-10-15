@@ -74,6 +74,16 @@ Also done: hit testing accounts for rotation and tilt; export renders to an offs
 - Motion: Gestalt has no duration or easing tokens, so hovers (step controls, template tiles, frame toolbar) use 160ms ease-out in `index.css`.
 - The colored-shadow pairs aren't tokens yet; they live in `artworkPalette.ts`. If the 18 `shadow-{hue}-50-on-800` / `-800-on-50` tokens are added to the design system, consider reading them from there.
 
+## New templates (2026-10-14)
+
+- Designed 8 candidates in code from the existing templates' rules (450×650 frames, 48px margin, Grid's 32px gaps, rotation range, intentional bleed) and reviewed them on a page drawn with the app's renderer. Kept 4:
+  - **Cascade** (5): frames dealt along a diagonal at −6°, center frame on top.
+  - **Wave** (7): frames along a gentle S-curve, rotations ±10°/±20°.
+  - **Skyline** (7): upright frames at stepped heights rising to a center hero.
+  - **Tilted grid** (10): Grid's spacing in staggered columns turned −12°, with edge columns on both sides (7–8% visible, like Grid's 7–10%).
+- Not kept: Flank, Burst, Pairs, Depth.
+- Next: brainstorm reference-inspired layouts that use 3D tilt (see Decision needed below).
+
 ## Edits (2026-10-13, fourth pass)
 
 - Templates are listed by frame count, lowest first (ties keep JSON order): Showcase, Arc, Stack, Spread, Table spread, Trail, Strips, Grid.
